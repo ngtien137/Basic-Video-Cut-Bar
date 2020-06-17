@@ -1,1 +1,1 @@
-"# Basic Video Cut Bar" 
+# Basic Video Cut Bar
