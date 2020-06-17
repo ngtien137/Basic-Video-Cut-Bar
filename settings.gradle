@@ -1,0 +1,3 @@
+include ':videocutbar'
+include ':app'
+rootProject.name = "BasicVideoCutBarDemo"

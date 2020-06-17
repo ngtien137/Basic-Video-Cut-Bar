@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BasicVideoCutBarDemo</string>
+    <string name="load_video">Load Video</string>
+</resources>
