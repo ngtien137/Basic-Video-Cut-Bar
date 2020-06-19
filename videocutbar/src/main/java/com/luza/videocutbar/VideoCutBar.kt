@@ -279,6 +279,10 @@ class VideoCutBar @JvmOverloads constructor(
         rectThumbRight.right = rectThumbRight.left + thumbWidth
     }
 
+    private fun invalidateCenterThumbWithProgress(){
+        val thumbLeft = progress.ToDimensionPosition() - thumbProgressWidth/2f
+    }
+
     private fun Drawable.drawAt(rect: Rect, canvas: Canvas) {
         setBounds(rect.left, rect.top, rect.right, rect.bottom)
         draw(canvas)
