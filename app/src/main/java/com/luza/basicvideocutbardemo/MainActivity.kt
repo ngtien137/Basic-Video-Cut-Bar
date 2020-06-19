@@ -11,11 +11,14 @@ import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.luza.videocutbar.VideoCutBar
 import com.luza.videocutbar.eLog
+import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
+    VideoCutBar.OnCutRangeChangeListener {
 
     companion object {
         const val REQUEST_VIDEO = 100
@@ -25,6 +28,38 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        videoCutBar.loadingListener = this
+        videoCutBar.rangeChangeListener = this
+    }
+
+    override fun onLoadingStart() {
+        llLoading.visibility = View.VISIBLE
+    }
+
+    override fun onLoadingComplete() {
+        llLoading.visibility = View.GONE
+    }
+
+    override fun onLoadingError() {
+        llLoading.visibility = View.GONE
+    }
+
+    override fun onRangeChanged(
+        videoCutBar: VideoCutBar?,
+        minValue: Long,
+        maxValue: Long,
+        thumbIndex: Int
+    ) {
+
+    }
+
+    override fun onRangeChanging(
+        videoCutBar: VideoCutBar?,
+        minValue: Long,
+        maxValue: Long,
+        thumbIndex: Int
+    ) {
+
     }
 
     fun loadVideo(view: View) {
@@ -32,10 +67,10 @@ class MainActivity : AppCompatActivity() {
             arrayOf(
                 android.Manifest.permission.READ_EXTERNAL_STORAGE,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ),{
-                val intent = Intent(Intent.ACTION_PICK,MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            ), {
+                val intent = Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
                 startActivityForResult(intent, REQUEST_VIDEO)
-            },{
+            }, {
 
             }
         )
@@ -52,7 +87,7 @@ class MainActivity : AppCompatActivity() {
                         if (path != null) {
                             eLog("Path Video: $path")
                             if (File(path).exists()) {
-                                //videoCutBar.videoPath = path
+                                videoCutBar.videoPath = path
                             } else
                                 Toast.makeText(
                                     this,

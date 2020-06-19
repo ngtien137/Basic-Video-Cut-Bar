@@ -8,6 +8,7 @@
     tools:context=".MainActivity">
 
     <com.luza.videocutbar.VideoCutBar
+        android:id="@+id/videoCutBar"
         android:layout_width="wrap_content"
 
         android:layout_height="wrap_content"
@@ -17,6 +18,9 @@
         app:layout_constraintRight_toRightOf="parent"
 
         app:layout_constraintTop_toTopOf="parent"
+
+        app:vcb_number_image_preview="10"
+
         app:vcb_progress_max="90"
         app:vcb_progress_min="40"
         app:vcb_thumb_height="100dp"
@@ -32,5 +36,26 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/llLoading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#C000"
+        android:clickable="true"
+        android:elevation="8dp"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:elevation="8dp"
+        tools:ignore="UnusedAttribute">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateTint="#fff"
+            tools:ignore="UnusedAttribute" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

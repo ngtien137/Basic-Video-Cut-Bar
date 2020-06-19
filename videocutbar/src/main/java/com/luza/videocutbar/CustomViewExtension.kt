@@ -1,9 +1,9 @@
 package com.luza.videocutbar
 
-import android.graphics.Rect
-import android.graphics.RectF
+import android.graphics.*
 import android.util.Log
 import kotlinx.coroutines.*
+
 
 fun RectF.set(l: Number, t: Number, r: Number, b: Number) {
     set(l.toFloat(), t.toFloat(), r.toFloat(), b.toFloat())
@@ -55,7 +55,7 @@ fun Int.abs(): Int {
 }
 
 /**Loading
-        **/
+ **/
 
 private fun <T> async(
     doIn: (scopeDoIn: CoroutineScope) -> T,
@@ -84,3 +84,29 @@ fun <T> doJob(
 fun cancelLoading() {
     jobLoading?.cancel()
 }
+
+fun Bitmap.scaleBitmap(width: Number, height: Number): Bitmap {
+    val background = Bitmap.createBitmap(width.toInt(), height.toInt(), Bitmap.Config.ARGB_8888)
+
+    val originalWidth: Float = getWidth().toFloat()
+    val originalHeight: Float = getHeight().toFloat()
+
+    val canvas = Canvas(background)
+
+    val scale = width.toInt() / originalWidth
+
+    val xTranslation = 0.0f
+    val yTranslation = (height.toInt() - originalHeight * scale) / 2.0f
+
+    val transformation = Matrix()
+    transformation.postTranslate(xTranslation, yTranslation)
+    transformation.preScale(scale, scale)
+
+    val paint = Paint()
+    paint.isFilterBitmap = true
+
+    canvas.drawBitmap(this, transformation, paint)
+
+    return background
+}
+

@@ -26,7 +26,12 @@ class VideoCutBar @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        private val COLOR_SPREAD = Color.parseColor("#70ffffff")
+        private val DEF_COLOR_SPREAD = Color.parseColor("#70ffffff")
+        private val DEF_COLOR_THUMB_OVERLAY = Color.parseColor("#70ffffff")
+        const val DEF_NUMBER_PREVIEW_IMAGE = 8
+        const val THUMB_LEFT = 0
+        const val THUMB_RIGHT = 1
+        const val THUMB_NONE = -1
     }
 
     private var viewWidth = 0
@@ -36,10 +41,10 @@ class VideoCutBar @JvmOverloads constructor(
     private var imageWidth = 0f
     private var barCorners = 0f
 
-    private var lastFocusThumbIndex = -1
+    private var lastFocusThumbIndex = THUMB_NONE
 
-    var oldIndexLeft = 0L
-    var oldIndexRight = 0L
+    var oldIndexLeft = 0f
+    var oldIndexRight = 0f
 
     var videoPath: String = ""
         set(value) {
@@ -47,36 +52,35 @@ class VideoCutBar @JvmOverloads constructor(
             setPath()
         }
 
-    var duration = 100L
+    var duration = 100f
         set(value) {
             field = value
             maxProgress = value
             if (minProgress > maxProgress)
-                minProgress = 0
-            if (!isLoadingDuration)
-                invalidate()
+                minProgress = 0f
         }
-    var progress = 0L
+    var progress = 0f
         private set
-    var maxProgress = 0L
+    var maxProgress = 0f
         private set
-    var minProgress = 0L
+    var minProgress = 0f
         private set
     var formatDuration: Format? = null
     private val pointDown = PointF(0f, 0f)
     private var isThumbMoving = false
-    var thumbIndex = -1
+    var thumbIndex = THUMB_NONE
         private set
 
     private var drawableThumbLeft: Drawable? = null
     private var drawableThumbRight: Drawable? = null
     private var listBitmap: ArrayList<Bitmap> = ArrayList()
+    private var bitmapBar: Bitmap? = null
 
     private var paintImage = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintThumbOverlay = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintProgressThumb = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintProgressThumbSpread = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = COLOR_SPREAD
+        color = DEF_COLOR_SPREAD
     }
     private var paintBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -95,7 +99,7 @@ class VideoCutBar @JvmOverloads constructor(
     private var listRectImage: ArrayList<RectF> = ArrayList()
 
     //number of preview image in video bar
-    private var numberPreviewImage = 8
+    private var numberPreviewImage = DEF_NUMBER_PREVIEW_IMAGE
     private var indicatorSize = 0
     private var indicatorCorners = 0F
 
@@ -113,7 +117,7 @@ class VideoCutBar @JvmOverloads constructor(
     private var touchAreaExtra = 0
 
     //The min value between two cut thumb, unit: miliseconds
-    private var minCutProgress = 0
+    private var minCutProgress = 0f
 
     var isInteract = false  //Check if user moving thumb or setting thumb progress by code
 
@@ -152,7 +156,7 @@ class VideoCutBar @JvmOverloads constructor(
                 ta.getColor(R.styleable.VideoCutBar_vcb_video_bar_background_color, Color.BLACK)
 
             showThumbCut = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_cut, true)
-            minCutProgress = ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0)
+            minCutProgress = ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
             thumbWidth = ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_width, 20)
             thumbHeight =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_height, videoBarHeight)
@@ -166,11 +170,11 @@ class VideoCutBar @JvmOverloads constructor(
             drawableThumbRight = ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_right)
                 ?: ContextCompat.getDrawable(context, R.drawable.ic_thumb_right_default)
             paintThumbOverlay.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color, Color.TRANSPARENT)
+                ta.getColor(R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color, DEF_COLOR_THUMB_OVERLAY)
             paintProgressThumb.color =
                 ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_color, Color.TRANSPARENT)
             paintProgressThumbSpread.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_spread_color, COLOR_SPREAD)
+                ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_spread_color, DEF_COLOR_SPREAD)
             thumbProgressWidth =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_width, 10)
             thumbProgressSpreadWidth =
@@ -187,9 +191,9 @@ class VideoCutBar @JvmOverloads constructor(
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_corners, 0)
             showThumbProgress = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_progress, true)
 
-            minProgress = ta.getInt(R.styleable.VideoCutBar_vcb_progress_min, 0).toLong()
+            minProgress = ta.getInt(R.styleable.VideoCutBar_vcb_progress_min, 0).toFloat()
             maxProgress =
-                ta.getInt(R.styleable.VideoCutBar_vcb_progress_max, duration.toInt()).toLong()
+                ta.getInt(R.styleable.VideoCutBar_vcb_progress_max, duration.toInt()).toFloat()
 
             if (thumbWidth == 0 && drawableThumbLeft != null)
                 thumbWidth = drawableThumbLeft!!.intrinsicWidth
@@ -256,15 +260,15 @@ class VideoCutBar @JvmOverloads constructor(
     private fun invalidateOverlayType() {
         rectOverlayLeft.set(
             rectCutBar.left,
-            rectThumbLeft.top,
+            rectCutBar.top,
             rectThumbLeft.centerX().toFloat(),
-            rectThumbLeft.bottom
+            rectCutBar.bottom
         )
         rectOverlayRight.set(
             rectThumbRight.centerX().toFloat(),
-            rectThumbLeft.top,
+            rectCutBar.top,
             rectCutBar.right,
-            rectThumbLeft.bottom
+            rectCutBar.bottom
         )
     }
 
@@ -283,6 +287,9 @@ class VideoCutBar @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas?) {
         canvas?.let {
             canvas.drawRoundRect(rectCutBar, barCorners, barCorners, paintImage)
+            bitmapBar?.let {
+                canvas.drawBitmap(it, null, rectCutBar, paintImage)
+            }
 //            canvas.drawRoundRect(
 //                rectThumbProgressSpread,
 //                thumbProgressCorners.toFloat(),
@@ -306,7 +313,7 @@ class VideoCutBar @JvmOverloads constructor(
 
     fun setVisibilityThumbCut(isShow: Boolean) {
         showThumbCut = isShow
-        invalidate()
+        postInvalidate()
     }
 
     fun setThumbImage(@DrawableRes thumbLeftId: Int, @DrawableRes thumbRightId: Int) {
@@ -329,7 +336,7 @@ class VideoCutBar @JvmOverloads constructor(
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (showThumbCut) {
-                        if (thumbIndex == -1 || duration == 0L)
+                        if (thumbIndex == THUMB_NONE || duration == 0f)
                             return true
                         val disMove = event.x - pointDown.x
                         if (isThumbMoving) {
@@ -345,15 +352,16 @@ class VideoCutBar @JvmOverloads constructor(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (showThumbCut) {
                         pointDown.set(0f, 0f)
-                        if (isThumbMoving)
+                        if (isThumbMoving) {
                             rangeChangeListener?.onRangeChanged(
                                 this,
-                                minProgress,
-                                maxProgress,
-                                isInteract
+                                minProgress.toLong(),
+                                maxProgress.toLong(),
+                                thumbIndex
                             )
-                        thumbIndex = -1
-                        isThumbMoving = false
+                            thumbIndex = THUMB_NONE
+                            isThumbMoving = false
+                        }
                         isInteract = false
                         invalidate()
                     }
@@ -393,7 +401,7 @@ class VideoCutBar @JvmOverloads constructor(
         lastFocusThumbIndex = thumbIndex
         val minBetween = if (duration > 0) minCutProgress.toLong().ToDimensionSize() else 0F
         val thumbRect: Rect
-        if (thumbIndex == 0) {
+        if (thumbIndex == THUMB_LEFT) {
             thumbRect = rectThumbLeft
             val minLeft = rectView.left
             val maxLeft = (rectThumbRight.left - thumbWidth).toFloat() - minBetween
@@ -402,7 +410,7 @@ class VideoCutBar @JvmOverloads constructor(
 
             if (minProgress > maxProgress - minCutProgress)
                 minProgress = maxProgress - minCutProgress
-        } else if (thumbIndex == 1) {
+        } else if (thumbIndex == THUMB_RIGHT) {
             thumbRect = rectThumbRight
             val minLeft =
                 rectThumbLeft.right + minBetween//Bỏ đi giới hạn ở giữa
@@ -414,38 +422,33 @@ class VideoCutBar @JvmOverloads constructor(
                 maxProgress = minProgress + minCutProgress
         }
         if (minProgress < 0)
-            minProgress = 0
+            minProgress = 0f
         if (maxProgress > duration)
             maxProgress = duration
-        if (thumbIndex == 0)
-            rangeChangeListener?.onLeftChange(minProgress, isInteract)
-        else if (thumbIndex == 1)
-            rangeChangeListener?.onRightChange(maxProgress, isInteract)
         //log("Min: $minProgress, Max: $maxProgress, Duration: $duration")
-        rangeChangeListener?.onRangeChanging(this, minProgress, maxProgress, isInteract)
+        rangeChangeListener?.onRangeChanging(this, minProgress.toLong(), maxProgress.toLong(), thumbIndex)
         invalidate()
     }
 
     private fun adjustMove(thumbRect: Rect, disMove: Int, minLeft: Float, maxLeft: Float) {
-        if (thumbRect.left + disMove < minLeft)
-            thumbRect.left = minLeft.roundToInt()
-        else if (thumbRect.left + disMove > maxLeft)
-            thumbRect.left = maxLeft.roundToInt()
-        else
-            thumbRect.left += disMove
+        when {
+            thumbRect.left + disMove < minLeft -> thumbRect.left = minLeft.roundToInt()
+            thumbRect.left + disMove > maxLeft -> thumbRect.left = maxLeft.roundToInt()
+            else -> thumbRect.left += disMove
+        }
         thumbRect.right = thumbRect.left + thumbWidth
     }
 
-    private fun Float.ToProgress(): Long {
+    private fun Float.ToProgress(): Float {
         val realDimension = (this - thumbWidth - rectView.left)
-        return ((realDimension / videoBarWidth) * duration).toLong()
+        return ((realDimension / videoBarWidth) * duration)
     }
 
     private fun Long.ToDimensionSize(): Float {
         return (this.toDouble() / duration * videoBarWidth).toFloat()
     }
 
-    private fun Long.ToDimensionPosition(): Float {
+    private fun Number.ToDimensionPosition(): Float {
         return (this.toFloat() / duration * videoBarWidth + rectView.left + thumbWidth)
     }
 
@@ -469,7 +472,7 @@ class VideoCutBar @JvmOverloads constructor(
             videoCutBar: VideoCutBar?,
             minValue: Long,
             maxValue: Long,
-            isInteract: Boolean
+            thumbIndex: Int
         ) {
         }
 
@@ -477,12 +480,10 @@ class VideoCutBar @JvmOverloads constructor(
             videoCutBar: VideoCutBar?,
             minValue: Long,
             maxValue: Long,
-            isInteract: Boolean
+            thumbIndex: Int
         ) {
         }
 
-        fun onLeftChange(minValue: Long, isInteract: Boolean) {}
-        fun onRightChange(maxValue: Long, isInteract: Boolean) {}
     }
 
     private fun setPath() {
@@ -496,7 +497,6 @@ class VideoCutBar @JvmOverloads constructor(
         }
     }
 
-    private var isLoadingDuration = false
     private fun setPath(set: Boolean) {
         loadingListener?.onLoadingStart()
         cancelLoading()
@@ -506,18 +506,28 @@ class VideoCutBar @JvmOverloads constructor(
             val sDuration =
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             try {
-                isLoadingDuration = true
-                duration = sDuration.toLong()
-                isLoadingDuration = false
+                duration = sDuration.toFloat()
                 maxProgress = duration
+                if (minCutProgress > duration)
+                    minCutProgress = 0f
             } catch (e: Exception) {
                 //Log.e("Can't get duration")
             }
-            listBitmap.clear()
+            bitmapBar = Bitmap.createBitmap(videoBarWidth, videoBarHeight, Bitmap.Config.RGB_565)
+            val canvas = Canvas(bitmapBar!!)
+            var offset = 0f
+            val scaleHeight = rectCutBar.height()
             for (i in 0 until numberPreviewImage) {
                 val bitmap =
-                    retriever.getFrameAtTime(duration / numberPreviewImage * i.toLong() * 1000)
-                listBitmap.add(bitmap)
+                    retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
+                val newBitmap = Bitmap.createScaledBitmap(
+                    bitmap,
+                    imageWidth.toInt(),
+                    scaleHeight.roundToInt(),
+                    false
+                )
+                canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
+                offset += imageWidth
             }
             retriever.release()
         }, {
