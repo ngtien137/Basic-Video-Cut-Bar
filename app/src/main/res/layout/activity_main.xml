@@ -120,18 +120,28 @@
         app:layout_constraintTop_toTopOf="parent"
 
         app:vcb_number_image_preview="8"
+        app:vcb_number_image_padding_vertical="0dp"
+        app:vcb_number_image_padding_horizontal="0dp"
 
+        app:vcb_show_thumb_cut="true"
+        app:vcb_thumb_left="@drawable/ic_thumb_left_default"
+        app:vcb_thumb_right="@drawable/ic_thumb_right_default"
         app:vcb_thumb_cut_shadow_color="#ccc"
         app:vcb_thumb_cut_shadow_radius="4dp"
+        app:vcb_thumb_touch_extra_area="10dp"
         app:vcb_thumb_height="80dp"
         app:vcb_thumb_width="20dp"
+        app:vcb_thumb_overlay_tail_color="#6ff0"
+        app:vcb_progress_min="20"
+        app:vcb_progress_max="40"
 
         app:vcb_progress_thumb_width="1dp"
         app:vcb_progress_thumb_color="#ff0000"
         app:vcb_progress_thumb_spread_color="#4400ff00"
         app:vcb_progress_thumb_height="90dp"
 
-        app:vcb_video_bar_border_corners="2dp"
+        app:vcb_video_bar_background_color="#000"
+        app:vcb_video_bar_border_corners="4dp"
         app:vcb_video_bar_height="80dp" />
 
     <Button
