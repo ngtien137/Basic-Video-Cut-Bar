@@ -15,8 +15,10 @@ import com.luza.videocutbar.VideoCutBar
 import com.luza.videocutbar.eLog
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
+import java.lang.Exception
 
 
+@SuppressLint("SetTextI18n")
 class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
     VideoCutBar.OnCutRangeChangeListener {
 
@@ -38,6 +40,7 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
 
     override fun onLoadingComplete() {
         llLoading.visibility = View.GONE
+        videoCutBar?.setRangeProgress(0f, videoCutBar?.duration ?: 0f)
     }
 
     override fun onLoadingError() {
@@ -59,7 +62,9 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
         maxValue: Long,
         thumbIndex: Int
     ) {
-
+        edtMin?.setText("$minValue")
+        edtMax?.setText("$maxValue")
+        tvThumb?.text = "Thumb: $thumbIndex"
     }
 
     fun loadVideo(view: View) {
@@ -158,6 +163,28 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
             onAllow?.invoke()
         } else {
             onDenied?.invoke()
+        }
+    }
+
+    fun setRange(view: View) {
+        try {
+            videoCutBar.setRangeProgress(
+                edtMin.text.toString().toLong(),
+                edtMax.text.toString().toLong()
+            )
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun applyShadowColor(view: View) {
+        videoCutBar?.setThumbShadow(edtShadowColor.text.toString())
+    }
+
+    fun setProgressCenter(view: View) {
+        try {
+            videoCutBar.setCenterProgress(edtProgress.text.toString().toLong())
+        } catch (e: Exception) {
         }
     }
 }

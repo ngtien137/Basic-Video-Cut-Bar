@@ -5,17 +5,15 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
-import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
 import java.io.File
-import java.lang.Exception
 import java.text.Format
 import kotlin.math.abs
 import kotlin.math.max
@@ -27,7 +25,8 @@ class VideoCutBar @JvmOverloads constructor(
 
     companion object {
         private val DEF_COLOR_SPREAD = Color.parseColor("#70ffffff")
-        private val DEF_COLOR_THUMB_OVERLAY = Color.parseColor("#70ffffff")
+        private val DEF_COLOR_THUMB_OVERLAY = Color.parseColor("#90000000")
+        private const val DEF_COLOR_THUMB_CUT_SHADOW = Color.GRAY
         const val DEF_NUMBER_PREVIEW_IMAGE = 8
         const val THUMB_LEFT = 0
         const val THUMB_RIGHT = 1
@@ -39,6 +38,8 @@ class VideoCutBar @JvmOverloads constructor(
     private var videoBarHeight = 0
     private var videoBarWidth = 0
     private var imageWidth = 0f
+    private var imagePaddingVertical = 0f
+    private var imagePaddingHorizontal = 0f
     private var barCorners = 0f
 
     private var lastFocusThumbIndex = THUMB_NONE
@@ -77,13 +78,11 @@ class VideoCutBar @JvmOverloads constructor(
     private var bitmapBar: Bitmap? = null
 
     private var paintImage = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var paintThumbCut = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintThumbOverlay = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintProgressThumb = Paint(Paint.ANTI_ALIAS_FLAG)
     private var paintProgressThumbSpread = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = DEF_COLOR_SPREAD
-    }
-    private var paintBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
     }
 
     private var rectView = RectF()
@@ -93,27 +92,26 @@ class VideoCutBar @JvmOverloads constructor(
     private var rectThumbProgressSpread = RectF()
     private var rectOverlayLeft = RectF()
     private var rectOverlayRight = RectF()
-    private var rectOverlayBetween = RectF()
-    private var rectBorder = RectF()
     private var rectCutBar = RectF()
+    private var rectImages = RectF()
     private var listRectImage: ArrayList<RectF> = ArrayList()
 
     //number of preview image in video bar
     private var numberPreviewImage = DEF_NUMBER_PREVIEW_IMAGE
-    private var indicatorSize = 0
-    private var indicatorCorners = 0F
 
     //thumb center (thumb progress)'s width
     private var thumbProgressWidth = 0
     private var thumbProgressSpreadWidth = 0
     private var thumbProgressHeight = 0
     private var thumbProgressCorners = 0
+    private var thumbProgressSpreadCorners = 0
 
     //thumb cut width
     private var thumbWidth = 0
     private var thumbHeight = 0
 
     //extra touch area for thumb cut
+    private var thumbCutShadowRadius = 0f
     private var touchAreaExtra = 0
 
     //The min value between two cut thumb, unit: miliseconds
@@ -125,7 +123,7 @@ class VideoCutBar @JvmOverloads constructor(
     var showThumbCut = true
 
     //Show thumb of progress (thumb center)
-    var showThumbProgress = true
+    private var showThumbProgress = true
 
     //isLoading video path to view rotateListener
     var loadingListener: ILoadingListener? = null
@@ -133,11 +131,10 @@ class VideoCutBar @JvmOverloads constructor(
     //moving thumb cut rotateListener
     var rangeChangeListener: OnCutRangeChangeListener? = null
 
-    private var showTempImage = true
-
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
     init {
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         attrs?.let {
             val ta = context.obtainStyledAttributes(attrs, R.styleable.VideoCutBar)
             videoBarHeight =
@@ -147,16 +144,27 @@ class VideoCutBar @JvmOverloads constructor(
                 )
             barCorners = ta.getDimension(R.styleable.VideoCutBar_vcb_video_bar_border_corners, 0f)
             numberPreviewImage = ta.getInt(R.styleable.VideoCutBar_vcb_number_image_preview, 8)
-            showTempImage = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_temp_image, true)
-            paintBorder.strokeWidth =
-                ta.getDimension(R.styleable.VideoCutBar_vcb_video_bar_border, 0f)
-            paintBorder.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_video_bar_border_color, Color.TRANSPARENT)
+            imagePaddingVertical =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_vertical, 0f)
+            imagePaddingHorizontal =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_horizontal, 0f)
             paintImage.color =
                 ta.getColor(R.styleable.VideoCutBar_vcb_video_bar_background_color, Color.BLACK)
 
             showThumbCut = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_cut, true)
-            minCutProgress = ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
+            var colorShadowThumbCut = ta.getColor(
+                R.styleable.VideoCutBar_vcb_thumb_cut_shadow_color,
+                DEF_COLOR_THUMB_CUT_SHADOW
+            )
+            thumbCutShadowRadius =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_thumb_cut_shadow_radius, 0f)
+            if (thumbCutShadowRadius < 0f) {
+                colorShadowThumbCut = Color.TRANSPARENT
+            }
+            paintThumbCut.color = colorShadowThumbCut
+            paintThumbCut.setShadowLayer(thumbCutShadowRadius, 0f, 0f, colorShadowThumbCut)
+            minCutProgress =
+                ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
             thumbWidth = ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_width, 20)
             thumbHeight =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_height, videoBarHeight)
@@ -170,17 +178,23 @@ class VideoCutBar @JvmOverloads constructor(
             drawableThumbRight = ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_right)
                 ?: ContextCompat.getDrawable(context, R.drawable.ic_thumb_right_default)
             paintThumbOverlay.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color, DEF_COLOR_THUMB_OVERLAY)
+                ta.getColor(
+                    R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color,
+                    DEF_COLOR_THUMB_OVERLAY
+                )
             paintProgressThumb.color =
                 ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_color, Color.TRANSPARENT)
             paintProgressThumbSpread.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_spread_color, DEF_COLOR_SPREAD)
+                ta.getColor(
+                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_color,
+                    DEF_COLOR_SPREAD
+                )
             thumbProgressWidth =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_width, 10)
             thumbProgressSpreadWidth =
                 ta.getDimensionPixelSize(
                     R.styleable.VideoCutBar_vcb_progress_thumb_spread_width,
-                    14
+                    thumbProgressWidth * 3
                 )
             thumbProgressHeight =
                 ta.getDimensionPixelSize(
@@ -189,6 +203,8 @@ class VideoCutBar @JvmOverloads constructor(
                 )
             thumbProgressCorners =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_corners, 0)
+            thumbProgressSpreadCorners =
+                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_spread_corners, 0)
             showThumbProgress = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_progress, true)
 
             minProgress = ta.getInt(R.styleable.VideoCutBar_vcb_progress_min, 0).toFloat()
@@ -243,12 +259,17 @@ class VideoCutBar @JvmOverloads constructor(
             rectView.right - thumbWidth,
             rectView.bottom - barSpacingVertical
         )
+        rectImages.set(
+            rectCutBar.left + imagePaddingHorizontal / 2f,
+            rectCutBar.top + imagePaddingVertical / 2f,
+            rectCutBar.right - imagePaddingHorizontal / 2f,
+            rectCutBar.bottom - imagePaddingHorizontal / 2f
+        )
 
         val thumbTop = rectCutBar.centerY() - thumbHeight / 2f
         val thumbBottom = rectCutBar.centerY() + thumbHeight / 2f
         rectThumbLeft.setThumbVerticalSize(thumbTop, thumbBottom)
         rectThumbRight.setThumbVerticalSize(thumbTop, thumbBottom)
-
         invalidateCutBarWithRange()
     }
 
@@ -279,8 +300,20 @@ class VideoCutBar @JvmOverloads constructor(
         rectThumbRight.right = rectThumbRight.left + thumbWidth
     }
 
-    private fun invalidateCenterThumbWithProgress(){
-        val thumbLeft = progress.ToDimensionPosition() - thumbProgressWidth/2f
+    private fun invalidateCenterThumbWithProgress() {
+        val thumbLeft = progress.ToDimensionPosition() - thumbProgressWidth / 2f
+        rectThumbProgress.set(
+            thumbLeft,
+            rectCutBar.centerY() - thumbProgressHeight / 2f,
+            thumbLeft + thumbProgressWidth,
+            rectCutBar.centerY() + thumbProgressHeight / 2f
+        )
+        rectThumbProgressSpread.setCenter(
+            rectThumbProgress.centerX(),
+            rectThumbProgress.centerY(),
+            thumbProgressSpreadWidth,
+            thumbProgressHeight
+        )
     }
 
     private fun Drawable.drawAt(rect: Rect, canvas: Canvas) {
@@ -292,41 +325,36 @@ class VideoCutBar @JvmOverloads constructor(
         canvas?.let {
             canvas.drawRoundRect(rectCutBar, barCorners, barCorners, paintImage)
             bitmapBar?.let {
-                canvas.drawBitmap(it, null, rectCutBar, paintImage)
+                canvas.drawBitmap(it, null, rectImages, paintImage)
             }
-//            canvas.drawRoundRect(
-//                rectThumbProgressSpread,
-//                thumbProgressCorners.toFloat(),
-//                thumbProgressCorners.toFloat(),
-//                paintProgressThumbSpread
-//            )
-//            canvas.drawRoundRect(
-//                rectThumbProgress,
-//                thumbProgressCorners.toFloat(), thumbProgressCorners.toFloat(), paintProgressThumb
-//            )
+
+            if (showThumbProgress) {
+                invalidateCenterThumbWithProgress()
+                canvas.drawRoundRect(
+                    rectThumbProgressSpread,
+                    thumbProgressSpreadCorners.toFloat(),
+                    thumbProgressSpreadCorners.toFloat(),
+                    paintProgressThumbSpread
+                )
+                canvas.drawRoundRect(
+                    rectThumbProgress,
+                    thumbProgressCorners.toFloat(),
+                    thumbProgressCorners.toFloat(),
+                    paintProgressThumb
+                )
+            }
 
             if (showThumbCut) {
                 invalidateOverlayType()
-                canvas.drawRect(rectOverlayLeft, paintThumbOverlay)
-                canvas.drawRect(rectOverlayRight, paintThumbOverlay)
+                canvas.drawRoundRect(rectOverlayLeft, barCorners, barCorners, paintThumbOverlay)
+                canvas.drawRoundRect(rectOverlayRight, barCorners, barCorners, paintThumbOverlay)
+                canvas.drawRect(rectThumbLeft, paintThumbCut)
+                canvas.drawRect(rectThumbRight, paintThumbCut)
                 drawableThumbLeft?.drawAt(rectThumbLeft, canvas)
                 drawableThumbRight?.drawAt(rectThumbRight, canvas)
             }
         }
     }
-
-    fun setVisibilityThumbCut(isShow: Boolean) {
-        showThumbCut = isShow
-        postInvalidate()
-    }
-
-    fun setThumbImage(@DrawableRes thumbLeftId: Int, @DrawableRes thumbRightId: Int) {
-        drawableThumbLeft = ContextCompat.getDrawable(context, thumbLeftId)
-        drawableThumbRight = ContextCompat.getDrawable(context, thumbRightId)
-        invalidate()
-
-    }
-
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -430,8 +458,21 @@ class VideoCutBar @JvmOverloads constructor(
         if (maxProgress > duration)
             maxProgress = duration
         //log("Min: $minProgress, Max: $maxProgress, Duration: $duration")
-        rangeChangeListener?.onRangeChanging(this, minProgress.toLong(), maxProgress.toLong(), thumbIndex)
+        fixProgressCenterWhenMoveThumb()
+        rangeChangeListener?.onRangeChanging(
+            this,
+            minProgress.toLong(),
+            maxProgress.toLong(),
+            thumbIndex
+        )
         invalidate()
+    }
+
+    private fun fixProgressCenterWhenMoveThumb() {
+        if (progress < minProgress) {
+            progress = minProgress
+        } else if (progress > maxProgress)
+            progress = maxProgress
     }
 
     private fun adjustMove(thumbRect: Rect, disMove: Int, minLeft: Float, maxLeft: Float) {
@@ -454,6 +495,147 @@ class VideoCutBar @JvmOverloads constructor(
 
     private fun Number.ToDimensionPosition(): Float {
         return (this.toFloat() / duration * videoBarWidth + rectView.left + thumbWidth)
+    }
+
+    /**
+     * For setting data programmatically
+     */
+    fun setVisibilityThumbCut(isShow: Boolean) {
+        showThumbCut = isShow
+        postInvalidate()
+    }
+
+    fun setThumbImage(@DrawableRes thumbLeftId: Int, @DrawableRes thumbRightId: Int) {
+        drawableThumbLeft = ContextCompat.getDrawable(context, thumbLeftId)
+        drawableThumbRight = ContextCompat.getDrawable(context, thumbRightId)
+        postInvalidate()
+
+    }
+
+    fun setCenterProgress(progress: Number) {
+        var p = progress.toFloat()
+        if (p < minProgress) {
+            p = minProgress
+        } else if (p > maxProgress) {
+            p = maxProgress
+        }
+        this.progress = p
+        postInvalidate()
+    }
+
+    fun setThumbShadow(@ColorInt color: Int, radius: Number = thumbCutShadowRadius) {
+        paintThumbCut.setShadowLayer(radius.toFloat(), 0f, 0f, color)
+        paintThumbCut.color = color
+        invalidate()
+    }
+
+    fun setThumbShadow(color: String, radius: Number = thumbCutShadowRadius) {
+        //color String format: #FF00FF
+        try {
+            val c = Color.parseColor(color)
+            setThumbShadow(c, radius)
+        } catch (e: StringIndexOutOfBoundsException) {
+            //empty or format error
+            //eLog("Set shadow color error")
+        } catch (e: IllegalArgumentException) {
+            //Unknown color or empty or format error
+            //eLog("Set shadow color error")
+        }
+    }
+
+    private fun setCustomDuration(duration: Number, resetView: Boolean = true) {
+        var d = duration.toFloat()
+        if (d < 0)
+            d = 100f
+        if (maxProgress > d || resetView) {
+            maxProgress = d
+        }
+        if (minProgress > d || minProgress >= maxProgress || resetView)
+            minProgress = 0f
+        if (progress > d || resetView)
+            progress = 0f
+        this.duration = d
+        invalidateCutBarWithRange()
+        invalidateOverlayType()
+        invalidateCenterThumbWithProgress()
+        postInvalidate()
+    }
+
+    fun setRangeProgress(minValue: Number, maxValue: Number) {
+        if (duration < 0)
+            return
+        var min = minValue.toFloat()
+        var max = maxValue.toFloat()
+        if (min > duration || min < 0) {
+            min = 0f
+        }
+        if (max > duration || max < min) {
+            max = duration
+        }
+        if (progress !in min..max) {
+            progress = min
+        }
+        this.minProgress = min
+        this.maxProgress = max
+        invalidateCutBarWithRange()
+        invalidateCenterThumbWithProgress()
+        invalidateOverlayType()
+        postInvalidate()
+    }
+
+    private fun setPath() {
+        val file = File(videoPath)
+        if (!file.exists()) {
+            loadingListener?.onLoadingError()
+            return
+        }
+        post {
+            setPath(true)
+        }
+    }
+
+    private fun setPath(set: Boolean) {
+        loadingListener?.onLoadingStart()
+        cancelLoading()
+        doJob({
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(videoPath)
+            val sDuration =
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            try {
+                duration = sDuration.toFloat()
+                maxProgress = duration
+                if (minCutProgress > duration)
+                    minCutProgress = 0f
+            } catch (e: Exception) {
+                //Log.e("Can't get duration")
+            }
+            bitmapBar = Bitmap.createBitmap(
+                videoBarWidth,
+                rectImages.height().roundToInt(),
+                Bitmap.Config.RGB_565
+            )
+            val canvas = Canvas(bitmapBar!!)
+            var offset = 0f
+            val scaleHeight = rectImages.height()
+            for (i in 0 until numberPreviewImage) {
+                val bitmap =
+                    retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
+                val newBitmap = Bitmap.createScaledBitmap(
+                    bitmap,
+                    imageWidth.toInt(),
+                    scaleHeight.roundToInt(),
+                    false
+                )
+                canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
+                offset += imageWidth
+            }
+            retriever.release()
+        }, {
+            loadingListener?.onLoadingComplete()
+            invalidate()
+        }, dispathcherOut = Dispatchers.Main)
+
     }
 
     fun cancelLoading() = com.luza.videocutbar.cancelLoading()
@@ -489,57 +671,5 @@ class VideoCutBar @JvmOverloads constructor(
         }
 
     }
-
-    private fun setPath() {
-        val file = File(videoPath)
-        if (!file.exists()) {
-            loadingListener?.onLoadingError()
-            return
-        }
-        post {
-            setPath(true)
-        }
-    }
-
-    private fun setPath(set: Boolean) {
-        loadingListener?.onLoadingStart()
-        cancelLoading()
-        doJob({
-            val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(videoPath)
-            val sDuration =
-                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-            try {
-                duration = sDuration.toFloat()
-                maxProgress = duration
-                if (minCutProgress > duration)
-                    minCutProgress = 0f
-            } catch (e: Exception) {
-                //Log.e("Can't get duration")
-            }
-            bitmapBar = Bitmap.createBitmap(videoBarWidth, videoBarHeight, Bitmap.Config.RGB_565)
-            val canvas = Canvas(bitmapBar!!)
-            var offset = 0f
-            val scaleHeight = rectCutBar.height()
-            for (i in 0 until numberPreviewImage) {
-                val bitmap =
-                    retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
-                val newBitmap = Bitmap.createScaledBitmap(
-                    bitmap,
-                    imageWidth.toInt(),
-                    scaleHeight.roundToInt(),
-                    false
-                )
-                canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
-                offset += imageWidth
-            }
-            retriever.release()
-        }, {
-            loadingListener?.onLoadingComplete()
-            invalidate()
-        }, dispathcherOut = Dispatchers.Main)
-
-    }
-
 
 }

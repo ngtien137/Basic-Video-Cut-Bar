@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">BasicVideoCutBarDemo</string>
     <string name="load_video">Load Video</string>
+    <string name="max">Max</string>
+    <string name="min">Min</string>
+    <string name="set">Set</string>
+    <string name="shadow_color">Shadow Color</string>
+    <string name="apply_shadow">Apply Shadow</string>
+    <string name="set_progress">Set progress</string>
+    <string name="ff0000">#ff0000</string>
+    <string name="_0">0</string>
 </resources>

@@ -7,6 +7,104 @@
     android:background="#6CAE9B"
     tools:context=".MainActivity">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        app:layout_constraintBottom_toTopOf="@id/videoCutBar"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvThumb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Thumb: -1" />
+
+        <EditText
+            android:id="@+id/edtMin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#fff"
+            android:hint="@string/min"
+            android:inputType="numberDecimal"
+            android:textColor="#000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="Autofill,LabelFor,TextFields" />
+
+        <EditText
+            android:id="@+id/edtMax"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="#fff"
+            android:hint="@string/max"
+            android:inputType="numberDecimal"
+            android:textColor="#000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="Autofill,LabelFor,TextFields" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setRange"
+            android:text="@string/set" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/shadow_color"
+            android:textColor="#fff" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:hint="@string/ff0000"
+                android:id="@+id/edtShadowColor"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:background="#fff" />
+
+            <Button
+                android:onClick="applyShadowColor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/apply_shadow"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:hint="@string/_0"
+                android:inputType="numberDecimal"
+                android:id="@+id/edtProgress"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:background="#fff" />
+
+            <Button
+                android:onClick="setProgressCenter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/set_progress"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+    </LinearLayout>
+
     <com.luza.videocutbar.VideoCutBar
         android:id="@+id/videoCutBar"
         android:layout_width="wrap_content"
@@ -19,12 +117,19 @@
 
         app:layout_constraintTop_toTopOf="parent"
 
-        app:vcb_number_image_preview="10"
+        app:vcb_number_image_preview="8"
 
-        app:vcb_progress_max="90"
-        app:vcb_progress_min="40"
-        app:vcb_thumb_height="100dp"
+        app:vcb_thumb_cut_shadow_color="#ccc"
+        app:vcb_thumb_cut_shadow_radius="4dp"
+        app:vcb_thumb_height="80dp"
         app:vcb_thumb_width="20dp"
+
+        app:vcb_progress_thumb_width="1dp"
+        app:vcb_progress_thumb_color="#ff0000"
+        app:vcb_progress_thumb_spread_color="#4400ff00"
+        app:vcb_progress_thumb_height="90dp"
+
+        app:vcb_video_bar_border_corners="2dp"
         app:vcb_video_bar_height="80dp" />
 
     <Button
