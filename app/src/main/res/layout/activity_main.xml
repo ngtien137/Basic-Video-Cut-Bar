@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#6CAE9B"
+    android:background="#0095a8"
     tools:context=".MainActivity">
 
     <LinearLayout
@@ -106,6 +106,8 @@
     </LinearLayout>
 
     <com.luza.videocutbar.VideoCutBar
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:id="@+id/videoCutBar"
         android:layout_width="wrap_content"
 
