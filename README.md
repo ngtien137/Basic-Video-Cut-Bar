@@ -1,7 +1,7 @@
 # Basic Video Cut Bar
 Simple range seek bar with preview images
 ## Preview 
-![alt text](https://github.com/ngtien137/Basic-Video-Cut-Bar/blob/master/git_resources/preview.gif)
+![alt text](https://github.com/ngtien137/Basic-Video-Cut-Bar/blob/master/git_resources/preview_i.gif)
 ## Getting Started
 ### Configure build.gradle (Project)
 * Add these lines:
