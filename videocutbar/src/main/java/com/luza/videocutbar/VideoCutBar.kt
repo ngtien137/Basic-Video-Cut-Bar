@@ -187,7 +187,7 @@ class VideoCutBar @JvmOverloads constructor(
         rectView.top = 0f + paddingTop
         rectView.bottom = (viewHeight - paddingBottom).toFloat()
         rectView.right = (viewWidth - paddingRight).toFloat()
-        videoBarWidth = (rectView.width() - thumbWidth * 2 - imagePaddingHorizontal).toInt()
+        videoBarWidth = (rectView.width() - thumbWidth * 2 - imagePaddingHorizontal - barCorners*2).toInt()
         imageWidth = videoBarWidth.toFloat() / numberPreviewImage
 
         var barSpacingVertical = (rectView.height() - videoBarHeight) / 2f
@@ -454,7 +454,7 @@ class VideoCutBar @JvmOverloads constructor(
         val thumbRect: Rect
         if (thumbIndex == THUMB_LEFT) {
             thumbRect = rectThumbLeft
-            val minLeft = rectView.left
+            val minLeft = rectView.left + barCorners
             val maxLeft = (rectThumbRight.left - thumbWidth).toFloat() - minBetween
             adjustMove(thumbRect, disMove, minLeft, maxLeft)
             minProgress = thumbRect.right.toFloat().ToProgress()
@@ -466,7 +466,7 @@ class VideoCutBar @JvmOverloads constructor(
             val minLeft =
                 rectThumbLeft.right + minBetween//Bỏ đi giới hạn ở giữa
             //(minCutProgress + minProgress).ToDimensionPosition()
-            val maxLeft = rectView.right - thumbWidth
+            val maxLeft = rectView.right - thumbWidth - barCorners
             adjustMove(thumbRect, disMove, minLeft, maxLeft)
             maxProgress = thumbRect.left.toFloat().ToProgress()
             if (maxProgress < minProgress + minCutProgress)
@@ -504,7 +504,7 @@ class VideoCutBar @JvmOverloads constructor(
     }
 
     private fun Float.ToProgress(): Float {
-        val realDimension = (this - thumbWidth - rectView.left)
+        val realDimension = (this - thumbWidth - rectView.left - barCorners)
         return ((realDimension / videoBarWidth) * duration)
     }
 
@@ -513,7 +513,7 @@ class VideoCutBar @JvmOverloads constructor(
     }
 
     private fun Number.ToDimensionPosition(): Float {
-        return (this.toFloat() / duration * videoBarWidth + rectView.left + thumbWidth)
+        return (this.toFloat() / duration * videoBarWidth + rectView.left + thumbWidth + barCorners)
     }
 
     /**
