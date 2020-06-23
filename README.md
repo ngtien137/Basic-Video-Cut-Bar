@@ -5,7 +5,7 @@ Simple range seek bar with preview images
 ## Getting Started
 ### Configure build.gradle (Project)
 * Add these lines:
-```kotlin
+```gradle
 allprojects {
   repositories {
     ...
