@@ -73,3 +73,40 @@ dependencies {
     app:vcb_video_bar_border_corners="4dp"
     app:vcb_video_bar_height="80dp" />
 ```
+## Listeners and callbacks
+
+```kotlin
+  videoCutBar.loadingListener = object : VideoCutBar.ILoadingListener{
+    override fun onLoadingStart() {
+        
+    }
+
+    override fun onLoadingComplete() {
+        
+    }
+
+    override fun onLoadingError() {
+        
+    }
+  }
+  
+   videoCutBar.rangeChangeListener = object : VideoCutBar.OnCutRangeChangeListener{
+      override fun onRangeChanged(
+          videoCutBar: VideoCutBar?,
+          minValue: Long,
+          maxValue: Long,
+          thumbIndex: Int
+      ) {
+
+      }
+
+      override fun onRangeChanging(
+          videoCutBar: VideoCutBar?,
+          minValue: Long,
+          maxValue: Long,
+          thumbIndex: Int
+      ) {
+          
+      }
+  }
+```
