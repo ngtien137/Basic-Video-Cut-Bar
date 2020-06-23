@@ -5,7 +5,7 @@ Simple range seek bar with preview images
 ## Getting Started
 ### Configure build.gradle (Project)
 * Add these lines:
-```
+```kotlin
 allprojects {
   repositories {
     ...
@@ -15,7 +15,7 @@ allprojects {
 ```
 ### Configure build gradle (Module):
 * Import module base:
-```
+```kotlin
 dependencies {
   implementation 'com.github.ngtien137:RangeIndicatorSeekBar:TAG'
 }
