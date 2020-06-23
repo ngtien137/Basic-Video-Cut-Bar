@@ -3,6 +3,7 @@ package com.luza.videocutbar
 import android.graphics.*
 import android.util.Log
 import kotlinx.coroutines.*
+import java.math.BigDecimal
 
 
 fun RectF.set(l: Number, t: Number, r: Number, b: Number) {
@@ -108,5 +109,9 @@ fun Bitmap.scaleBitmap(width: Number, height: Number): Bitmap {
     canvas.drawBitmap(this, transformation, paint)
 
     return background
+}
+
+fun Float.scale(numberDigitsAfterComma:Int):Float{
+    return BigDecimal(this.toDouble()).setScale(numberDigitsAfterComma, BigDecimal.ROUND_HALF_EVEN).toFloat()
 }
 

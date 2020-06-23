@@ -5,16 +5,22 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import androidx.annotation.ColorInt
+import androidx.annotation.DimenRes
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.text.Format
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -31,6 +37,7 @@ class VideoCutBar @JvmOverloads constructor(
         const val THUMB_LEFT = 0
         const val THUMB_RIGHT = 1
         const val THUMB_NONE = -1
+        const val EXTRA_HEIGHT_MULTIPLY = 1
     }
 
     private var viewWidth = 0
@@ -66,7 +73,6 @@ class VideoCutBar @JvmOverloads constructor(
         private set
     var minProgress = 0f
         private set
-    var formatDuration: Format? = null
     private val pointDown = PointF(0f, 0f)
     private var isThumbMoving = false
     var thumbIndex = THUMB_NONE
@@ -77,24 +83,27 @@ class VideoCutBar @JvmOverloads constructor(
     private var listBitmap: ArrayList<Bitmap> = ArrayList()
     private var bitmapBar: Bitmap? = null
 
-    private var paintImage = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var paintThumbCut = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var paintThumbOverlay = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var paintProgressThumb = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var paintProgressThumbSpread = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val paintImage = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintThumbCut = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintThumbOverlay = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintProgressThumb = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintProgressThumbSpread = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = DEF_COLOR_SPREAD
     }
+    private val paintIndicator = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+    }
 
-    private var rectView = RectF()
-    private var rectThumbLeft = Rect()
-    private var rectThumbRight = Rect()
-    private var rectThumbProgress = RectF()
-    private var rectThumbProgressSpread = RectF()
-    private var rectOverlayLeft = RectF()
-    private var rectOverlayRight = RectF()
-    private var rectCutBar = RectF()
-    private var rectImages = RectF()
-    private var listRectImage: ArrayList<RectF> = ArrayList()
+    private val rectView = RectF()
+    private val rectThumbLeft = Rect()
+    private val rectThumbRight = Rect()
+    private val rectThumbProgress = RectF()
+    private val rectThumbProgressSpread = RectF()
+    private val rectOverlayLeft = RectF()
+    private val rectOverlayRight = RectF()
+    private val rectCutBar = RectF()
+    private val rectImages = RectF()
+    private val rectIndicator = Rect()
 
     //number of preview image in video bar
     private var numberPreviewImage = DEF_NUMBER_PREVIEW_IMAGE
@@ -133,94 +142,23 @@ class VideoCutBar @JvmOverloads constructor(
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
 
+    private var textIndicatorSpacing = 0f
+    private var indicatorMode = IndicatorMode.HIDDEN
+    private var indicatorPosition = IndicatorPosition.TOP
+    private var indicatorFormat: Format? = null
+
     init {
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-        attrs?.let {
-            val ta = context.obtainStyledAttributes(attrs, R.styleable.VideoCutBar)
-            videoBarHeight =
-                ta.getDimensionPixelSize(
-                    R.styleable.VideoCutBar_vcb_video_bar_height,
-                    context.resources.getDimensionPixelSize(R.dimen.vcb_def_bar_height)
-                )
-            barCorners = ta.getDimension(R.styleable.VideoCutBar_vcb_video_bar_border_corners, 0f)
-            numberPreviewImage = ta.getInt(R.styleable.VideoCutBar_vcb_number_image_preview, 8)
-            imagePaddingVertical =
-                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_vertical, 0f)
-            imagePaddingHorizontal =
-                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_horizontal, 0f)
-            paintImage.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_video_bar_background_color, Color.BLACK)
-
-            showThumbCut = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_cut, true)
-            var colorShadowThumbCut = ta.getColor(
-                R.styleable.VideoCutBar_vcb_thumb_cut_shadow_color,
-                DEF_COLOR_THUMB_CUT_SHADOW
-            )
-            thumbCutShadowRadius =
-                ta.getDimension(R.styleable.VideoCutBar_vcb_thumb_cut_shadow_radius, 0f)
-            if (thumbCutShadowRadius < 0f) {
-                colorShadowThumbCut = Color.TRANSPARENT
-            }
-            paintThumbCut.color = colorShadowThumbCut
-            paintThumbCut.setShadowLayer(thumbCutShadowRadius, 0f, 0f, colorShadowThumbCut)
-            minCutProgress =
-                ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
-            thumbWidth = ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_width, 20)
-            thumbHeight =
-                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_height, videoBarHeight)
-            touchAreaExtra =
-                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_touch_extra_area, 0)
-            drawableThumbLeft =
-                ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_left) ?: ContextCompat.getDrawable(
-                    context,
-                    R.drawable.ic_thumb_left_default
-                )
-            drawableThumbRight = ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_right)
-                ?: ContextCompat.getDrawable(context, R.drawable.ic_thumb_right_default)
-            paintThumbOverlay.color =
-                ta.getColor(
-                    R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color,
-                    DEF_COLOR_THUMB_OVERLAY
-                )
-            paintProgressThumb.color =
-                ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_color, Color.TRANSPARENT)
-            paintProgressThumbSpread.color =
-                ta.getColor(
-                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_color,
-                    DEF_COLOR_SPREAD
-                )
-            thumbProgressWidth =
-                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_width, 10)
-            thumbProgressSpreadWidth =
-                ta.getDimensionPixelSize(
-                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_width,
-                    thumbProgressWidth * 3
-                )
-            thumbProgressHeight =
-                ta.getDimensionPixelSize(
-                    R.styleable.VideoCutBar_vcb_progress_thumb_height,
-                    thumbHeight
-                )
-            thumbProgressCorners =
-                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_corners, 0)
-            thumbProgressSpreadCorners =
-                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_spread_corners, 0)
-            showThumbProgress = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_progress, true)
-
-            minProgress = ta.getInt(R.styleable.VideoCutBar_vcb_progress_min, 0).toFloat()
-            maxProgress =
-                ta.getInt(R.styleable.VideoCutBar_vcb_progress_max, duration.toInt()).toFloat()
-
-            if (thumbWidth == 0 && drawableThumbLeft != null)
-                thumbWidth = drawableThumbLeft!!.intrinsicWidth
-            ta.recycle()
-        }
+        initView(attrs)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         viewWidth = MeasureSpec.getSize(widthMeasureSpec)
-        val minHeight =
+        var minHeight =
             max(max(thumbHeight, videoBarHeight), thumbProgressHeight) + paddingTop + paddingBottom
+        if (paintIndicator.textSize > 0f && indicatorMode != IndicatorMode.HIDDEN) {
+            paintIndicator.getTextBounds("1", 0, 1, rectIndicator)
+            minHeight += (textIndicatorSpacing + rectIndicator.height() * EXTRA_HEIGHT_MULTIPLY).roundToInt()
+        }
         viewHeight = measureDimension(minHeight, heightMeasureSpec)
         setMeasuredDimension(viewWidth, viewHeight)
     }
@@ -237,9 +175,9 @@ class VideoCutBar @JvmOverloads constructor(
                 result = kotlin.math.min(result, specSize)
             }
         }
-        if (result < desiredSize) {
-            //eLog("The view is too small, the content might get cut")
-        }
+        //if (result < desiredSize) {
+        //eLog("The view is too small, the content might get cut")
+        //}
         return result
     }
 
@@ -249,21 +187,34 @@ class VideoCutBar @JvmOverloads constructor(
         rectView.top = 0f + paddingTop
         rectView.bottom = (viewHeight - paddingBottom).toFloat()
         rectView.right = (viewWidth - paddingRight).toFloat()
-        videoBarWidth = (rectView.width() - thumbWidth * 2).toInt()
+        videoBarWidth = (rectView.width() - thumbWidth * 2 - imagePaddingHorizontal).toInt()
         imageWidth = videoBarWidth.toFloat() / numberPreviewImage
 
-        val barSpacingVertical = (rectView.height() - videoBarHeight) / 2f
+        var barSpacingVertical = (rectView.height() - videoBarHeight) / 2f
         rectCutBar.set(
             rectView.left + thumbWidth,
             rectView.top + barSpacingVertical,
             rectView.right - thumbWidth,
             rectView.bottom - barSpacingVertical
         )
+
+        if (paintIndicator.textSize > 0f && indicatorMode != IndicatorMode.HIDDEN) {
+            barSpacingVertical =
+                (rectView.height() - videoBarHeight - textIndicatorSpacing - rectIndicator.height() * EXTRA_HEIGHT_MULTIPLY) / 2f
+            if (indicatorPosition == IndicatorPosition.BOTTOM) {
+                rectCutBar.top = rectView.top + barSpacingVertical
+                rectCutBar.bottom = rectCutBar.top + videoBarHeight
+            } else {
+                rectCutBar.bottom = rectView.bottom - barSpacingVertical
+                rectCutBar.top = rectCutBar.bottom - videoBarHeight
+            }
+        }
+
         rectImages.set(
             rectCutBar.left + imagePaddingHorizontal / 2f,
             rectCutBar.top + imagePaddingVertical / 2f,
             rectCutBar.right - imagePaddingHorizontal / 2f,
-            rectCutBar.bottom - imagePaddingHorizontal / 2f
+            rectCutBar.bottom - imagePaddingVertical / 2f
         )
 
         val thumbTop = rectCutBar.centerY() - thumbHeight / 2f
@@ -353,7 +304,73 @@ class VideoCutBar @JvmOverloads constructor(
                 drawableThumbLeft?.drawAt(rectThumbLeft, canvas)
                 drawableThumbRight?.drawAt(rectThumbRight, canvas)
             }
+
+            if (paintIndicator.textSize > 0f) {
+                var textLeft = minProgress.toString()
+                var textRight = maxProgress.toString()
+                if (indicatorFormat != null) {
+                    textLeft = indicatorFormat!!.format(minProgress.toLong())
+                    textRight = indicatorFormat!!.format(maxProgress.toLong())
+                }
+                val textWidthLeft = paintIndicator.measureText(textLeft)
+                val textWidthRight = paintIndicator.measureText(textRight)
+                when (indicatorMode) {
+                    IndicatorMode.VISIBLE -> {
+                        canvas.drawIndicator(
+                            rectThumbLeft,
+                            textLeft,
+                            textWidthLeft / 2f,
+                            rectThumbRight.centerX() - textWidthRight / 2f - textWidthLeft / 2f
+                        )
+                        canvas.drawIndicator(
+                            rectThumbRight,
+                            textRight,
+                            rectThumbLeft.centerX() + textWidthLeft / 2f + textWidthRight / 2f,
+                            width - textWidthRight / 2f
+                        )
+                    }
+                    IndicatorMode.ONLY_FOCUS->{
+                        if (isThumbMoving){
+                            if (thumbIndex== THUMB_LEFT){
+                                canvas.drawIndicator(rectThumbLeft,textLeft,textWidthLeft / 2f, width-textWidthLeft/2f)
+                            }else{
+                                canvas.drawIndicator(rectThumbRight,textRight,textWidthRight / 2f, width-textWidthRight/2f)
+                            }
+                        }
+                    }
+                    else->{
+
+                    }
+                }
+            }
         }
+    }
+
+    private fun Canvas.drawIndicator(
+        rectThumb: Rect,
+        text: String,
+        minPosition: Float,
+        maxPosition: Float
+    ) {
+        val yText = if (indicatorPosition == IndicatorPosition.TOP) {
+            if (videoBarHeight > rectThumb.height()) {
+                rectCutBar.top - textIndicatorSpacing
+            } else {
+                rectThumb.top - textIndicatorSpacing
+            }
+        } else {
+            if (videoBarHeight > rectThumb.height()) {
+                rectCutBar.bottom + textIndicatorSpacing + rectIndicator.height()
+            } else {
+                rectThumb.bottom + textIndicatorSpacing + rectIndicator.height()
+            }
+        }
+        var xText = rectThumb.centerX().toFloat()
+        if (xText < minPosition)
+            xText = minPosition
+        else if (xText > maxPosition)
+            xText = maxPosition
+        drawText(text, xText, yText, paintIndicator)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -431,7 +448,9 @@ class VideoCutBar @JvmOverloads constructor(
         oldIndexRight = maxProgress
         isInteract = true
         lastFocusThumbIndex = thumbIndex
-        val minBetween = if (duration > 0) minCutProgress.toLong().ToDimensionSize() else 0F
+        val minCutProgress = if (duration > this.minCutProgress) this.minCutProgress else 0f
+        val minBetween =
+            if (duration > minCutProgress) minCutProgress.toLong().ToDimensionSize() else 0F
         val thumbRect: Rect
         if (thumbIndex == THUMB_LEFT) {
             thumbRect = rectThumbLeft
@@ -672,4 +691,150 @@ class VideoCutBar @JvmOverloads constructor(
 
     }
 
+    enum class IndicatorPosition(var value: Int) {
+        TOP(0), BOTTOM(1)
+    }
+
+    enum class IndicatorMode(var value: Int) {
+        VISIBLE(0), ONLY_FOCUS(1), HIDDEN(-1)
+    }
+
+    private fun initView(attrs: AttributeSet?) {
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        attrs?.let {
+            val ta = context.obtainStyledAttributes(attrs, R.styleable.VideoCutBar)
+            videoBarHeight =
+                ta.getDimensionPixelSize(
+                    R.styleable.VideoCutBar_vcb_video_bar_height,
+                    context.resources.getDimensionPixelSize(R.dimen.vcb_def_bar_height)
+                )
+            barCorners = ta.getDimension(R.styleable.VideoCutBar_vcb_video_bar_border_corners, 0f)
+            numberPreviewImage = ta.getInt(R.styleable.VideoCutBar_vcb_number_image_preview, 8)
+            imagePaddingVertical =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_vertical, 0f)
+            imagePaddingHorizontal =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_number_image_padding_horizontal, 0f)
+            paintImage.color =
+                ta.getColor(R.styleable.VideoCutBar_vcb_video_bar_background_color, Color.BLACK)
+
+            showThumbCut = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_cut, true)
+            var colorShadowThumbCut = ta.getColor(
+                R.styleable.VideoCutBar_vcb_thumb_cut_shadow_color,
+                DEF_COLOR_THUMB_CUT_SHADOW
+            )
+            thumbCutShadowRadius =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_thumb_cut_shadow_radius, 0f)
+            if (thumbCutShadowRadius < 0f) {
+                colorShadowThumbCut = Color.TRANSPARENT
+            }
+            paintThumbCut.color = colorShadowThumbCut
+            paintThumbCut.setShadowLayer(thumbCutShadowRadius, 0f, 0f, colorShadowThumbCut)
+            minCutProgress =
+                ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
+            thumbWidth = ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_width, 20)
+            thumbHeight =
+                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_height, videoBarHeight)
+            touchAreaExtra =
+                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_touch_extra_area, 0)
+            drawableThumbLeft =
+                ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_left) ?: ContextCompat.getDrawable(
+                    context,
+                    R.drawable.ic_thumb_left_default
+                )
+            drawableThumbRight = ta.getDrawable(R.styleable.VideoCutBar_vcb_thumb_right)
+                ?: ContextCompat.getDrawable(context, R.drawable.ic_thumb_right_default)
+            paintThumbOverlay.color =
+                ta.getColor(
+                    R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color,
+                    DEF_COLOR_THUMB_OVERLAY
+                )
+            paintProgressThumb.color =
+                ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_color, Color.TRANSPARENT)
+            paintProgressThumbSpread.color =
+                ta.getColor(
+                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_color,
+                    DEF_COLOR_SPREAD
+                )
+            thumbProgressWidth =
+                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_width, 10)
+            thumbProgressSpreadWidth =
+                ta.getDimensionPixelSize(
+                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_width,
+                    thumbProgressWidth * 3
+                )
+            thumbProgressHeight =
+                ta.getDimensionPixelSize(
+                    R.styleable.VideoCutBar_vcb_progress_thumb_height,
+                    thumbHeight
+                )
+            thumbProgressCorners =
+                ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_progress_thumb_corners, 0)
+            thumbProgressSpreadCorners =
+                ta.getDimensionPixelSize(
+                    R.styleable.VideoCutBar_vcb_progress_thumb_spread_corners,
+                    0
+                )
+            showThumbProgress = ta.getBoolean(R.styleable.VideoCutBar_vcb_show_thumb_progress, true)
+
+            minProgress = ta.getFloat(R.styleable.VideoCutBar_vcb_progress_min, 0f)
+            maxProgress =
+                ta.getFloat(R.styleable.VideoCutBar_vcb_progress_max, duration)
+            progress =
+                ta.getFloat(R.styleable.VideoCutBar_vcb_progress_center, minProgress)
+
+            if (thumbWidth == 0 && drawableThumbLeft != null)
+                thumbWidth = drawableThumbLeft!!.intrinsicWidth
+
+            //Text Indicator
+            paintIndicator.color =
+                ta.getColor(R.styleable.VideoCutBar_vcb_indicator_color, Color.BLACK)
+            paintIndicator.textSize =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_indicator_size, 0f)
+            textIndicatorSpacing =
+                ta.getDimension(R.styleable.VideoCutBar_vcb_indicator_spacing, 0f)
+            indicatorMode =
+                when (ta.getInt(
+                    R.styleable.VideoCutBar_vcb_indicator_show_mode,
+                    IndicatorMode.HIDDEN.value
+                )) {
+                    IndicatorMode.VISIBLE.value -> {
+                        IndicatorMode.VISIBLE
+                    }
+                    IndicatorMode.ONLY_FOCUS.value -> {
+                        IndicatorMode.ONLY_FOCUS
+                    }
+                    else -> {
+                        IndicatorMode.HIDDEN
+                    }
+                }
+            //eLog("Indicator Mode: $indicatorMode")
+
+            indicatorPosition =
+                when (ta.getInt(
+                    R.styleable.VideoCutBar_vcb_indicator_position,
+                    IndicatorPosition.TOP.value
+                )) {
+                    IndicatorPosition.BOTTOM.value -> {
+                        IndicatorPosition.BOTTOM
+                    }
+                    else -> {
+                        IndicatorPosition.TOP
+                    }
+                }
+            //eLog("Indicator Position: $indicatorPosition")
+            val fontId = ta.getResourceId(R.styleable.VideoCutBar_vcb_indicator_font, -1)
+            if (fontId != -1) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    paintIndicator.typeface = resources.getFont(fontId)
+                } else
+                    paintIndicator.typeface = ResourcesCompat.getFont(context, fontId)
+            }
+            val format = ta.getString(R.styleable.VideoCutBar_vcb_indicator_format)
+            eLog("Format: $format")
+            if (!format.isNullOrEmpty()) {
+                indicatorFormat = SimpleDateFormat(format, Locale.getDefault())
+            }
+            ta.recycle()
+        }
+    }
 }

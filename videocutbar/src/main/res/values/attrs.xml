@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="VideoCutBar">
+
+        <!-- Video Cut Bar Attributes -->
         <attr name="vcb_video_bar_height" format="dimension" />
         <attr name="vcb_number_image_preview" format="integer" />
         <attr name="vcb_number_image_padding_vertical" format="dimension" />
@@ -8,6 +10,7 @@
         <attr name="vcb_video_bar_background_color" format="color" />
         <attr name="vcb_video_bar_border_corners" format="dimension" />
 
+        <!-- Thumb Cut Attributes -->
         <attr name="vcb_show_thumb_cut" format="boolean" />
         <attr name="vcb_thumb_left" format="reference" />
         <attr name="vcb_thumb_right" format="reference" />
@@ -19,6 +22,7 @@
         <attr name="vcb_thumb_cut_min_progress" format="integer" />
         <attr name="vcb_thumb_overlay_tail_color" format="color" />
 
+        <!-- Thumb Progress (Center) Attributes -->
         <attr name="vcb_progress_thumb_spread_color" format="color" />
         <attr name="vcb_progress_thumb_spread_width" format="dimension" />
         <attr name="vcb_progress_thumb_color" format="color" />
@@ -27,8 +31,26 @@
         <attr name="vcb_progress_thumb_corners" format="dimension" />
         <attr name="vcb_progress_thumb_spread_corners" format="dimension" />
         <attr name="vcb_show_thumb_progress" format="boolean" />
-        
-        <attr name="vcb_progress_min" format="integer"/>
-        <attr name="vcb_progress_max" format="integer"/>
+
+        <!-- Progress Attributes -->
+        <attr name="vcb_progress_min" format="integer" />
+        <attr name="vcb_progress_max" format="integer" />
+        <attr name="vcb_progress_center" format="integer" />
+
+        <!-- Indicator text Attributes -->
+        <attr name="vcb_indicator_show_mode" format="enum">
+            <enum name="visible" value="0" />
+            <enum name="focus_only" value="1" />
+            <enum name="hidden" value="-1" />
+        </attr>
+        <attr name="vcb_indicator_position" format="enum">
+            <enum name="top" value="0" />
+            <enum name="bottom" value="1" />
+        </attr>
+        <attr name="vcb_indicator_spacing" format="dimension" />
+        <attr name="vcb_indicator_size" format="dimension" />
+        <attr name="vcb_indicator_color" format="color" />
+        <attr name="vcb_indicator_font" format="reference" />
+        <attr name="vcb_indicator_format" format="string" />
     </declare-styleable>
 </resources>
