@@ -15,7 +15,7 @@ allprojects {
 ```
 ### Configure build gradle (Module):
 * Import module base:
-```kotlin
+```gradle
 dependencies {
   implementation 'com.github.ngtien137:RangeIndicatorSeekBar:TAG'
 }
