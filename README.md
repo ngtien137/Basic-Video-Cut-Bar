@@ -19,6 +19,7 @@ allprojects {
 dependencies {
   implementation 'com.github.ngtien137:RangeIndicatorSeekBar:TAG'
 }
+```
 * You can get version of this module [here](https://jitpack.io/#ngtien137/Basic-Video-Cut-Bar)
 ## All Attributes 
 ```xml
