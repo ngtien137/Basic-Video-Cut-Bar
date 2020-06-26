@@ -57,7 +57,7 @@ dependencies {
     app:vcb_progress_thumb_color="#ff0000"
     app:vcb_progress_thumb_spread_color="#4400ff00"
     app:vcb_progress_thumb_height="90dp"
-    app:vcb_progress_overlay_mode="inside"
+    app:vcb_progress_overlay_mode="outside"
 
     app:vcb_indicator_show_mode="visible"
     app:vcb_indicator_position="bottom"
