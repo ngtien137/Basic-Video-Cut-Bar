@@ -724,7 +724,7 @@ class VideoCutBar @JvmOverloads constructor(
             )
             thumbCutShadowRadius =
                 ta.getDimension(R.styleable.VideoCutBar_vcb_thumb_cut_shadow_radius, 0f)
-            if (thumbCutShadowRadius < 0f) {
+            if (thumbCutShadowRadius <= 0f) {
                 colorShadowThumbCut = Color.TRANSPARENT
             }
             paintThumbCut.color = colorShadowThumbCut

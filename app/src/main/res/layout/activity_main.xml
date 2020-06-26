@@ -127,7 +127,7 @@
         app:vcb_thumb_left="@drawable/ic_thumb_left_default"
         app:vcb_thumb_right="@drawable/ic_thumb_right_default"
 
-        app:vcb_thumb_cut_shadow_color="#ff0"
+        app:vcb_thumb_cut_shadow_color="#f00"
         app:vcb_thumb_cut_shadow_radius="4dp"
         app:vcb_thumb_touch_extra_area="10dp"
         app:vcb_thumb_height="80dp"
@@ -146,7 +146,7 @@
         app:vcb_indicator_format="mm:ss"
         app:vcb_indicator_font="@font/poppins"
 
-        app:vcb_progress_min="0"
+        app:vcb_progress_min="010"
         app:vcb_progress_max="100"
         app:vcb_thumb_cut_min_progress="2000"
 
