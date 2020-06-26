@@ -21,6 +21,7 @@
         <attr name="vcb_thumb_touch_extra_area" format="dimension" />
         <attr name="vcb_thumb_cut_min_progress" format="integer" />
         <attr name="vcb_thumb_overlay_tail_color" format="color" />
+        <attr name="vcb_thumb_overlay_tail_inside_color" format="color" />
 
         <!-- Thumb Progress (Center) Attributes -->
         <attr name="vcb_progress_thumb_spread_color" format="color" />
@@ -36,6 +37,11 @@
         <attr name="vcb_progress_min" format="integer" />
         <attr name="vcb_progress_max" format="integer" />
         <attr name="vcb_progress_center" format="integer" />
+        <attr name="vcb_progress_overlay_mode" format="enum">
+            <enum name="outside" value="0"/>
+            <enum name="inside" value="1"/>
+            <enum name="both" value="2"/>
+        </attr>
 
         <!-- Indicator text Attributes -->
         <attr name="vcb_indicator_show_mode" format="enum">

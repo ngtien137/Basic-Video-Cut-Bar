@@ -36,7 +36,7 @@ fun Rect.setCenter(cX: Number, cY: Number, sizeX: Number, sizeY: Number) {
     set(centerX - width / 2f, centerY - height / 2, centerX + width / 2, centerY + height / 2)
 }
 
-var isLogEnable = true
+var isLogEnable = BuildConfig.DEBUG
 val TAG_LOG = "VIEW_LOG"
 fun eLog(message: String) {
     TAG_LOG.eLog(message)

@@ -138,6 +138,8 @@
         app:vcb_progress_thumb_color="#ff0000"
         app:vcb_progress_thumb_spread_color="#4400ff00"
         app:vcb_progress_thumb_height="90dp"
+        app:vcb_progress_overlay_mode="both"
+        app:vcb_thumb_overlay_tail_inside_color="#0000"
 
         app:vcb_indicator_show_mode="visible"
         app:vcb_indicator_position="top"
@@ -146,8 +148,8 @@
         app:vcb_indicator_format="mm:ss"
         app:vcb_indicator_font="@font/poppins"
 
-        app:vcb_progress_min="010"
-        app:vcb_progress_max="100"
+        app:vcb_progress_min="10"
+        app:vcb_progress_max="80"
         app:vcb_thumb_cut_min_progress="2000"
 
         app:vcb_video_bar_background_color="#fff"

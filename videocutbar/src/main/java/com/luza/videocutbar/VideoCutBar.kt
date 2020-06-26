@@ -86,6 +86,7 @@ class VideoCutBar @JvmOverloads constructor(
     private val paintImage = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintThumbCut = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintThumbOverlay = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintThumbOverlayInside = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintProgressThumb = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintProgressThumbSpread = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = DEF_COLOR_SPREAD
@@ -101,6 +102,7 @@ class VideoCutBar @JvmOverloads constructor(
     private val rectThumbProgressSpread = RectF()
     private val rectOverlayLeft = RectF()
     private val rectOverlayRight = RectF()
+    private val rectOverlayCenter = RectF()
     private val rectCutBar = RectF()
     private val rectImages = RectF()
     private val rectIndicator = Rect()
@@ -147,6 +149,8 @@ class VideoCutBar @JvmOverloads constructor(
     private var indicatorPosition = IndicatorPosition.TOP
     private var indicatorFormat: Format? = null
 
+    private var progressOverlayMode = ProgressOverlayMode.OUTSIDE
+
     init {
         initView(attrs)
     }
@@ -187,7 +191,8 @@ class VideoCutBar @JvmOverloads constructor(
         rectView.top = 0f + paddingTop
         rectView.bottom = (viewHeight - paddingBottom).toFloat()
         rectView.right = (viewWidth - paddingRight).toFloat()
-        videoBarWidth = (rectView.width() - thumbWidth * 2 - imagePaddingHorizontal - barCorners*2).toInt()
+        videoBarWidth =
+            (rectView.width() - thumbWidth * 2 - imagePaddingHorizontal - barCorners * 2).toInt()
         imageWidth = videoBarWidth.toFloat() / numberPreviewImage
 
         var barSpacingVertical = (rectView.height() - videoBarHeight) / 2f
@@ -241,6 +246,10 @@ class VideoCutBar @JvmOverloads constructor(
             rectCutBar.top,
             rectCutBar.right,
             rectCutBar.bottom
+        )
+        rectOverlayCenter.set(
+            rectThumbLeft.centerX().toFloat(),
+            rectCutBar.top, rectThumbRight.centerX().toFloat(), rectCutBar.bottom
         )
     }
 
@@ -297,8 +306,18 @@ class VideoCutBar @JvmOverloads constructor(
 
             if (showThumbCut) {
                 invalidateOverlayType()
-                canvas.drawRoundRect(rectOverlayLeft, barCorners, barCorners, paintThumbOverlay)
-                canvas.drawRoundRect(rectOverlayRight, barCorners, barCorners, paintThumbOverlay)
+                when (progressOverlayMode) {
+                    ProgressOverlayMode.INSIDE -> {
+                        drawOverlayInside(canvas)
+                    }
+                    ProgressOverlayMode.BOTH -> {
+                        drawOverlayInside(canvas)
+                        drawOverlayOutside(canvas)
+                    }
+                    else -> {
+                        drawOverlayOutside(canvas)
+                    }
+                }
                 canvas.drawRect(rectThumbLeft, paintThumbCut)
                 canvas.drawRect(rectThumbRight, paintThumbCut)
                 drawableThumbLeft?.drawAt(rectThumbLeft, canvas)
@@ -329,21 +348,50 @@ class VideoCutBar @JvmOverloads constructor(
                             width - textWidthRight / 2f
                         )
                     }
-                    IndicatorMode.ONLY_FOCUS->{
-                        if (isThumbMoving){
-                            if (thumbIndex== THUMB_LEFT){
-                                canvas.drawIndicator(rectThumbLeft,textLeft,textWidthLeft / 2f, width-textWidthLeft/2f)
-                            }else{
-                                canvas.drawIndicator(rectThumbRight,textRight,textWidthRight / 2f, width-textWidthRight/2f)
+                    IndicatorMode.ONLY_FOCUS -> {
+                        if (isThumbMoving) {
+                            if (thumbIndex == THUMB_LEFT) {
+                                canvas.drawIndicator(
+                                    rectThumbLeft,
+                                    textLeft,
+                                    textWidthLeft / 2f,
+                                    width - textWidthLeft / 2f
+                                )
+                            } else {
+                                canvas.drawIndicator(
+                                    rectThumbRight,
+                                    textRight,
+                                    textWidthRight / 2f,
+                                    width - textWidthRight / 2f
+                                )
                             }
                         }
                     }
-                    else->{
+                    else -> {
 
                     }
                 }
             }
         }
+    }
+
+    private fun drawOverlayOutside(canvas: Canvas) {
+        canvas.drawRoundRect(rectOverlayLeft, barCorners, barCorners, paintThumbOverlay)
+        canvas.drawRoundRect(
+            rectOverlayRight,
+            barCorners,
+            barCorners,
+            paintThumbOverlay
+        )
+    }
+
+    private fun drawOverlayInside(canvas: Canvas) {
+        canvas.drawRoundRect(
+            rectOverlayCenter,
+            barCorners,
+            barCorners,
+            paintThumbOverlayInside
+        )
     }
 
     private fun Canvas.drawIndicator(
@@ -378,10 +426,12 @@ class VideoCutBar @JvmOverloads constructor(
         event?.let {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    rangeChangeListener?.onStartTouchBar()
                     if (showThumbCut) {
                         pointDown.set(event.x, event.y)
                         thumbIndex = getThumbFocus()
                     }
+                    true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (showThumbCut) {
@@ -391,12 +441,16 @@ class VideoCutBar @JvmOverloads constructor(
                         if (isThumbMoving) {
                             pointDown.x = event.x
                             moveThumb(disMove)
+                            true
                         } else {
                             if (abs(disMove) >= touchSlop) {
                                 isThumbMoving = true
-                            }
+                                true
+                            } else
+                                false
                         }
-                    }
+                    } else
+                        false
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (showThumbCut) {
@@ -414,7 +468,10 @@ class VideoCutBar @JvmOverloads constructor(
                         isInteract = false
                         invalidate()
                     }
+                    rangeChangeListener?.onStopTouchBar()
+                    false
                 }
+                else -> true
             }
         }
         return true
@@ -689,6 +746,9 @@ class VideoCutBar @JvmOverloads constructor(
         ) {
         }
 
+        fun onStartTouchBar() {}
+        fun onStopTouchBar() {}
+
     }
 
     enum class IndicatorPosition(var value: Int) {
@@ -697,6 +757,10 @@ class VideoCutBar @JvmOverloads constructor(
 
     enum class IndicatorMode(var value: Int) {
         VISIBLE(0), ONLY_FOCUS(1), HIDDEN(-1)
+    }
+
+    enum class ProgressOverlayMode(var value: Int) {
+        OUTSIDE(0), INSIDE(1), BOTH(2)
     }
 
     private fun initView(attrs: AttributeSet?) {
@@ -747,6 +811,11 @@ class VideoCutBar @JvmOverloads constructor(
                 ta.getColor(
                     R.styleable.VideoCutBar_vcb_thumb_overlay_tail_color,
                     DEF_COLOR_THUMB_OVERLAY
+                )
+            paintThumbOverlayInside.color =
+                ta.getColor(
+                    R.styleable.VideoCutBar_vcb_thumb_overlay_tail_inside_color,
+                    paintThumbOverlay.color
                 )
             paintProgressThumb.color =
                 ta.getColor(R.styleable.VideoCutBar_vcb_progress_thumb_color, Color.TRANSPARENT)
@@ -821,6 +890,22 @@ class VideoCutBar @JvmOverloads constructor(
                         IndicatorPosition.TOP
                     }
                 }
+
+            progressOverlayMode =
+                when (ta.getInt(
+                    R.styleable.VideoCutBar_vcb_progress_overlay_mode,
+                    ProgressOverlayMode.OUTSIDE.value
+                )) {
+                    ProgressOverlayMode.INSIDE.value -> {
+                        ProgressOverlayMode.INSIDE
+                    }
+                    ProgressOverlayMode.BOTH.value -> {
+                        ProgressOverlayMode.BOTH
+                    }
+                    else -> {
+                        ProgressOverlayMode.OUTSIDE
+                    }
+                }
             //eLog("Indicator Position: $indicatorPosition")
             val fontId = ta.getResourceId(R.styleable.VideoCutBar_vcb_indicator_font, -1)
             if (fontId != -1) {
@@ -830,7 +915,6 @@ class VideoCutBar @JvmOverloads constructor(
                     paintIndicator.typeface = ResourcesCompat.getFont(context, fontId)
             }
             val format = ta.getString(R.styleable.VideoCutBar_vcb_indicator_format)
-            eLog("Format: $format")
             if (!format.isNullOrEmpty()) {
                 indicatorFormat = SimpleDateFormat(format, Locale.getDefault())
             }

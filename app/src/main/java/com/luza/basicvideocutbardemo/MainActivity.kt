@@ -67,6 +67,14 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
         tvThumb?.text = "Thumb: $thumbIndex"
     }
 
+    override fun onStartTouchBar() {
+        eLog("Start Touch Bar")
+    }
+
+    override fun onStopTouchBar() {
+        eLog("Stop Touch Bar")
+    }
+
     fun loadVideo(view: View) {
         doRequestPermission(
             arrayOf(
