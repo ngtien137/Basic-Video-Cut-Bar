@@ -76,6 +76,11 @@ dependencies {
 ## Listeners and callbacks
 
 ```kotlin
+  //Set value for center progress:
+  videoCutBar.setCenterProgress(500L)
+  //Set path video:
+  videoCutBar.videoPath = path //String path video
+
   videoCutBar.loadingListener = object : VideoCutBar.ILoadingListener{
     override fun onLoadingStart() {
         
