@@ -57,6 +57,7 @@ dependencies {
     app:vcb_progress_thumb_color="#ff0000"
     app:vcb_progress_thumb_spread_color="#4400ff00"
     app:vcb_progress_thumb_height="90dp"
+    app:vcb_progress_overlay_mode="inside"
 
     app:vcb_indicator_show_mode="visible"
     app:vcb_indicator_position="bottom"
@@ -83,7 +84,7 @@ dependencies {
 
   videoCutBar.loadingListener = object : VideoCutBar.ILoadingListener{
     override fun onLoadingStart() {
-        
+        //Start loading image preview after setting videoPath
     }
 
     override fun onLoadingComplete() {
@@ -112,6 +113,14 @@ dependencies {
           thumbIndex: Int
       ) {
           
+      }
+      
+      override fun onStartTouchBar() {
+          eLog("Start Touch Bar")
+      }
+
+      override fun onStopTouchBar() {
+          eLog("Stop Touch Bar")
       }
   }
 ```
