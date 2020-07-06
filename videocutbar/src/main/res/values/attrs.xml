@@ -38,9 +38,14 @@
         <attr name="vcb_progress_max" format="integer" />
         <attr name="vcb_progress_center" format="integer" />
         <attr name="vcb_progress_overlay_mode" format="enum">
-            <enum name="outside" value="0"/>
-            <enum name="inside" value="1"/>
-            <enum name="both" value="2"/>
+            <enum name="outside" value="0" />
+            <enum name="inside" value="1" />
+            <enum name="both" value="2" />
+        </attr>
+        <attr name="vcb_progress_fix_center_progress_mode" format="enum">
+            <enum name="outside" value="0" />
+            <enum name="inside" value="1" />
+            <enum name="none" value="-1" />
         </attr>
 
         <!-- Indicator text Attributes -->

@@ -150,8 +150,11 @@ class VideoCutBar @JvmOverloads constructor(
     private var indicatorFormat: Format? = null
 
     private var progressOverlayMode = ProgressOverlayMode.OUTSIDE
+    private var centerProgressFixMode =
+        CenterProgressFixMode.NONE //fix mode for center progress if its value is not belong to selected range
 
     init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
         initView(attrs)
     }
 
@@ -545,10 +548,21 @@ class VideoCutBar @JvmOverloads constructor(
     }
 
     private fun fixProgressCenterWhenMoveThumb() {
-        if (progress < minProgress) {
-            progress = minProgress
-        } else if (progress > maxProgress)
-            progress = maxProgress
+        when (centerProgressFixMode) {
+            CenterProgressFixMode.OUTSIDE -> {
+                if (progress > minProgress && progress < maxProgress) {
+                    progress = maxProgress
+                }
+            }
+            CenterProgressFixMode.INSIDE -> {
+                if (progress < minProgress) {
+                    progress = minProgress
+                } else if (progress > maxProgress)
+                    progress = maxProgress
+            }
+            else -> {
+            }
+        }
     }
 
     private fun adjustMove(thumbRect: Rect, disMove: Int, minLeft: Float, maxLeft: Float) {
@@ -590,10 +604,19 @@ class VideoCutBar @JvmOverloads constructor(
 
     fun setCenterProgress(progress: Number) {
         var p = progress.toFloat()
-        if (p < minProgress) {
-            p = minProgress
-        } else if (p > maxProgress) {
-            p = maxProgress
+        when (centerProgressFixMode) {
+            CenterProgressFixMode.INSIDE -> {
+                if (p < minProgress) {
+                    p = minProgress
+                } else if (p > maxProgress) {
+                    p = maxProgress
+                }
+            }
+            CenterProgressFixMode.OUTSIDE -> {
+                if (p > minProgress && p < maxProgress) {
+                    p = maxProgress
+                }
+            }
         }
         this.progress = p
         postInvalidate()
@@ -763,6 +786,10 @@ class VideoCutBar @JvmOverloads constructor(
         OUTSIDE(0), INSIDE(1), BOTH(2)
     }
 
+    enum class CenterProgressFixMode(var value: Int) {
+        OUTSIDE(0), INSIDE(1), NONE(-1)
+    }
+
     private fun initView(attrs: AttributeSet?) {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         attrs?.let {
@@ -848,8 +875,9 @@ class VideoCutBar @JvmOverloads constructor(
             minProgress = ta.getFloat(R.styleable.VideoCutBar_vcb_progress_min, 0f)
             maxProgress =
                 ta.getFloat(R.styleable.VideoCutBar_vcb_progress_max, duration)
-            progress =
-                ta.getFloat(R.styleable.VideoCutBar_vcb_progress_center, minProgress)
+            val centerDefValue = if (centerProgressFixMode == CenterProgressFixMode.INSIDE)
+                minProgress else 0f
+            progress = ta.getFloat(R.styleable.VideoCutBar_vcb_progress_center, centerDefValue)
 
             if (thumbWidth == 0 && drawableThumbLeft != null)
                 thumbWidth = drawableThumbLeft!!.intrinsicWidth
@@ -904,6 +932,22 @@ class VideoCutBar @JvmOverloads constructor(
                     }
                     else -> {
                         ProgressOverlayMode.OUTSIDE
+                    }
+                }
+
+            centerProgressFixMode =
+                when (ta.getInt(
+                    R.styleable.VideoCutBar_vcb_progress_fix_center_progress_mode,
+                    CenterProgressFixMode.INSIDE.value
+                )) {
+                    CenterProgressFixMode.OUTSIDE.value -> {
+                        CenterProgressFixMode.OUTSIDE
+                    }
+                    CenterProgressFixMode.INSIDE.value -> {
+                        CenterProgressFixMode.INSIDE
+                    }
+                    else -> {
+                        CenterProgressFixMode.NONE
                     }
                 }
             //eLog("Indicator Position: $indicatorPosition")
