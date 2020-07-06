@@ -52,6 +52,7 @@ dependencies {
     app:vcb_thumb_height="80dp"
     app:vcb_thumb_width="20dp"
     app:vcb_thumb_overlay_tail_color="#66A3A301"
+    app:vcb_progress_fix_center_progress_mode="inside" //Moving thumb cut pull center progress mode
 
     app:vcb_progress_thumb_width="1dp"
     app:vcb_progress_thumb_color="#ff0000"
