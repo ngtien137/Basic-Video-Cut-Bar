@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
     companion object {
         const val REQUEST_VIDEO = 100
         const val REQUEST_PERMISSION = 100
+        const val EXTRA_PATH = "PATH"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +91,7 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
 
     }
 
+    private var currentPath = ""
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
@@ -100,7 +102,8 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
                         if (path != null) {
                             eLog("Path Video: $path")
                             if (File(path).exists()) {
-                                videoCutBar.videoPath = path
+                                currentPath = path
+                                videoCutBar.setVideoPath(path, true)//videoPath = path
                             } else
                                 Toast.makeText(
                                     this,
@@ -133,7 +136,7 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
 
     private var onAllow: (() -> Unit)? = null
     private var onDenied: (() -> Unit)? = null
-    fun checkPermission(permissions: Array<String>): Boolean {
+    private fun checkPermission(permissions: Array<String>): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             permissions.forEach {
                 if (checkSelfPermission(it) ==
@@ -194,5 +197,11 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
             videoCutBar.setCenterProgress(edtProgress.text.toString().toLong())
         } catch (e: Exception) {
         }
+    }
+
+    fun changeScreen(view: View) {
+        startActivity(Intent(this, MainActivity2::class.java).apply {
+            putExtra(EXTRA_PATH, currentPath)
+        })
     }
 }

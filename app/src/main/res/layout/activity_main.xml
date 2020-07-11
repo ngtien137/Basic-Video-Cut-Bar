@@ -69,16 +69,16 @@
             android:layout_height="wrap_content">
 
             <EditText
-                android:hint="@string/ff0000"
                 android:id="@+id/edtShadowColor"
                 android:layout_width="100dp"
                 android:layout_height="wrap_content"
-                android:background="#fff" />
+                android:background="#fff"
+                android:hint="@string/ff0000" />
 
             <Button
-                android:onClick="applyShadowColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:onClick="applyShadowColor"
                 android:text="@string/apply_shadow"
                 android:textAllCaps="false" />
         </LinearLayout>
@@ -88,17 +88,17 @@
             android:layout_height="wrap_content">
 
             <EditText
-                android:hint="@string/_0"
-                android:inputType="numberDecimal"
                 android:id="@+id/edtProgress"
                 android:layout_width="100dp"
                 android:layout_height="wrap_content"
-                android:background="#fff" />
+                android:background="#fff"
+                android:hint="@string/_0"
+                android:inputType="numberDecimal" />
 
             <Button
-                android:onClick="setProgressCenter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:onClick="setProgressCenter"
                 android:text="@string/set_progress"
                 android:textAllCaps="false" />
         </LinearLayout>
@@ -106,12 +106,12 @@
     </LinearLayout>
 
     <com.luza.videocutbar.VideoCutBar
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
         android:id="@+id/videoCutBar"
         android:layout_width="wrap_content"
-
         android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+
+        android:paddingEnd="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
 
         app:layout_constraintLeft_toLeftOf="parent"
@@ -119,51 +119,62 @@
 
         app:layout_constraintTop_toTopOf="parent"
 
-        app:vcb_number_image_preview="8"
-        app:vcb_number_image_padding_vertical="4dp"
-        app:vcb_number_image_padding_horizontal="0dp"
+        app:vcb_indicator_font="@font/poppins"
+        app:vcb_indicator_format="mm:ss"
+        app:vcb_indicator_position="top"
 
+        app:vcb_indicator_show_mode="visible"
+        app:vcb_indicator_size="10dp"
+        app:vcb_indicator_spacing="4dp"
+
+        app:vcb_number_image_padding_horizontal="0dp"
+        app:vcb_number_image_padding_vertical="4dp"
+        app:vcb_number_image_preview="8"
+        app:vcb_progress_fix_center_progress_mode="inside"
+        app:vcb_progress_max="80"
+        app:vcb_progress_min="10"
+
+        app:vcb_progress_overlay_mode="both"
+        app:vcb_progress_thumb_color="#ff0000"
+        app:vcb_progress_thumb_height="90dp"
+        app:vcb_progress_thumb_spread_color="#4400ff00"
+        app:vcb_progress_thumb_width="1dp"
         app:vcb_show_thumb_cut="true"
-        app:vcb_thumb_left="@drawable/ic_thumb_left_default"
-        app:vcb_thumb_right="@drawable/ic_thumb_right_default"
+        app:vcb_thumb_cut_min_progress="2000"
 
         app:vcb_thumb_cut_shadow_color="#f00"
         app:vcb_thumb_cut_shadow_radius="4dp"
-        app:vcb_thumb_touch_extra_area="10dp"
         app:vcb_thumb_height="80dp"
-        app:vcb_thumb_width="20dp"
+        app:vcb_thumb_left="@drawable/ic_thumb_left_default"
         app:vcb_thumb_overlay_tail_color="#66A3A301"
-
-        app:vcb_progress_thumb_width="1dp"
-        app:vcb_progress_thumb_color="#ff0000"
-        app:vcb_progress_thumb_spread_color="#4400ff00"
-        app:vcb_progress_thumb_height="90dp"
-        app:vcb_progress_overlay_mode="both"
         app:vcb_thumb_overlay_tail_inside_color="#0000"
-        app:vcb_progress_fix_center_progress_mode="inside"
 
-        app:vcb_indicator_show_mode="visible"
-        app:vcb_indicator_position="top"
-        app:vcb_indicator_size="10dp"
-        app:vcb_indicator_spacing="4dp"
-        app:vcb_indicator_format="mm:ss"
-        app:vcb_indicator_font="@font/poppins"
-
-        app:vcb_progress_min="10"
-        app:vcb_progress_max="80"
-        app:vcb_thumb_cut_min_progress="2000"
+        app:vcb_thumb_right="@drawable/ic_thumb_right_default"
+        app:vcb_thumb_touch_extra_area="10dp"
+        app:vcb_thumb_width="20dp"
 
         app:vcb_video_bar_background_color="#fff"
         app:vcb_video_bar_border_corners="4dp"
         app:vcb_video_bar_height="80dp" />
 
     <Button
+        android:id="@+id/btnLoadVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:onClick="loadVideo"
         android:text="@string/load_video"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:onClick="changeScreen"
+        android:id="@+id/btnChangeScreen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/change_screen"
+        app:layout_constraintBottom_toTopOf="@+id/btnLoadVideo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

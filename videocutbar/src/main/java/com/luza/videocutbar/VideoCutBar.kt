@@ -38,6 +38,9 @@ class VideoCutBar @JvmOverloads constructor(
         const val THUMB_RIGHT = 1
         const val THUMB_NONE = -1
         const val EXTRA_HEIGHT_MULTIPLY = 1
+
+        private var HISTORY_BITMAP: Bitmap? = null
+        private var HISTORY_PATH: String? = null
     }
 
     private var viewWidth = 0
@@ -54,11 +57,7 @@ class VideoCutBar @JvmOverloads constructor(
     var oldIndexLeft = 0f
     var oldIndexRight = 0f
 
-    var videoPath: String = ""
-        set(value) {
-            field = value
-            setPath()
-        }
+    private var videoPath: String = ""
 
     var duration = 100f
         set(value) {
@@ -682,54 +681,60 @@ class VideoCutBar @JvmOverloads constructor(
         postInvalidate()
     }
 
-    private fun setPath() {
+    fun setVideoPath(path: String, useHistoryBitmap: Boolean = false) {
+        videoPath = path
+        setPath(useHistoryBitmap)
+    }
+
+    fun getVideoPath() = videoPath
+
+    private fun setPath(useHistoryBitmap: Boolean = false) {
         val file = File(videoPath)
         if (!file.exists()) {
             loadingListener?.onLoadingError()
             return
         }
         post {
-            setPath(true)
+            applyPath(useHistoryBitmap)
         }
     }
 
-    private fun setPath(set: Boolean) {
+    private fun applyPath(useHistoryBitmap: Boolean = false) {
         loadingListener?.onLoadingStart()
         cancelLoading()
         doJob({
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(videoPath)
-            val sDuration =
-                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-            try {
-                duration = sDuration.toFloat()
-                maxProgress = duration
-                if (minCutProgress > duration)
-                    minCutProgress = 0f
-            } catch (e: Exception) {
-                //Log.e("Can't get duration")
-            }
-            bitmapBar = Bitmap.createBitmap(
-                videoBarWidth,
-                rectImages.height().roundToInt(),
-                Bitmap.Config.RGB_565
-            )
-            val canvas = Canvas(bitmapBar!!)
-            var offset = 0f
-            val scaleHeight = rectImages.height()
-            for (i in 0 until numberPreviewImage) {
-                val bitmap =
-                    retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
-                val newBitmap = Bitmap.createScaledBitmap(
-                    bitmap,
-                    imageWidth.toInt(),
-                    scaleHeight.roundToInt(),
-                    false
+            loadVideoDurationWithPath(retriever)
+            if (useHistoryBitmap && videoPath.isNotEmpty() && videoPath == HISTORY_PATH && HISTORY_BITMAP != null) {
+                bitmapBar = HISTORY_BITMAP
+            } else {
+                bitmapBar = Bitmap.createBitmap(
+                    videoBarWidth,
+                    rectImages.height().roundToInt(),
+                    Bitmap.Config.RGB_565
                 )
-                canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
-                offset += imageWidth
+                val canvas = Canvas(bitmapBar!!)
+                var offset = 0f
+                val scaleHeight = rectImages.height()
+                for (i in 0 until numberPreviewImage) {
+                    val bitmap =
+                        retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
+                    val newBitmap = Bitmap.createScaledBitmap(
+                        bitmap,
+                        imageWidth.toInt(),
+                        scaleHeight.roundToInt(),
+                        false
+                    )
+                    canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
+                    offset += imageWidth
+                }
             }
             retriever.release()
+            if (useHistoryBitmap) {
+                HISTORY_BITMAP = bitmapBar
+                HISTORY_PATH = videoPath
+            }
         }, {
             loadingListener?.onLoadingComplete()
             invalidate()
@@ -737,7 +742,30 @@ class VideoCutBar @JvmOverloads constructor(
 
     }
 
+    private fun loadVideoDurationWithPath(retriever: MediaMetadataRetriever) {
+        val sDuration =
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        try {
+            duration = sDuration.toFloat()
+            maxProgress = duration
+            if (minCutProgress > duration)
+                minCutProgress = 0f
+        } catch (e: Exception) {
+            //Log.e("Can't get duration")
+        }
+    }
+
     fun cancelLoading() = com.luza.videocutbar.cancelLoading()
+
+    fun clearHistoryBitmap() {
+        try {
+            HISTORY_BITMAP?.recycle()
+        } catch (e: Exception) {
+            eLog("Clear Bitmap Error $e")
+        }
+        HISTORY_PATH = ""
+        HISTORY_BITMAP = null
+    }
 
     override fun invalidate() {
         try {
