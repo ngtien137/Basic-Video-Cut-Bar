@@ -17,7 +17,7 @@ class MainActivity2 : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        //videoCutBar?.clearHistoryBitmap()
+        videoCutBar?.clearHistoryBitmap()
         super.onBackPressed()
     }
 }

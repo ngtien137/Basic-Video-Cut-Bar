@@ -757,11 +757,13 @@ class VideoCutBar @JvmOverloads constructor(
 
     fun cancelLoading() = com.luza.videocutbar.cancelLoading()
 
-    fun clearHistoryBitmap() {
-        try {
-            HISTORY_BITMAP?.recycle()
-        } catch (e: Exception) {
-            eLog("Clear Bitmap Error $e")
+    fun clearHistoryBitmap(recyclerBitmap: Boolean = false) {
+        if (recyclerBitmap) {
+            try {
+                HISTORY_BITMAP?.recycle()
+            } catch (e: Exception) {
+                eLog("Clear Bitmap Error $e")
+            }
         }
         HISTORY_PATH = ""
         HISTORY_BITMAP = null
