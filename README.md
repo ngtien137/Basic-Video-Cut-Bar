@@ -82,7 +82,8 @@ dependencies {
   //Set value for center progress:
   videoCutBar.setCenterProgress(500L)
   //Set path video:
-  videoCutBar.videoPath = path //String path video
+  videoCutBar.videoPath = path //Desprecated in version 1.5
+  From version 1.5: videoCutBar.setVideoPath(path,useHistoryBitmap:Boolean)
 
   videoCutBar.loadingListener = object : VideoCutBar.ILoadingListener{
     override fun onLoadingStart() {
