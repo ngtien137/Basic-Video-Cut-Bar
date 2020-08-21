@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import kotlinx.coroutines.Dispatchers
 import java.io.File
+import java.lang.NullPointerException
 import java.text.Format
 import java.text.SimpleDateFormat
 import java.util.*
@@ -41,6 +42,23 @@ class VideoCutBar @JvmOverloads constructor(
 
         private var HISTORY_BITMAP: Bitmap? = null
         private var HISTORY_PATH: String? = null
+
+        fun checkValidVideo(path: String): Boolean {
+            var valid = true
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(path)
+                val bitmap = retriever.getFrameAtTime(0)
+                if (bitmap == null) {
+                    throw Exception()
+                }
+            } catch (e: Exception) {
+                valid = false
+            }
+            retriever.release()
+            return valid
+        }
+
     }
 
     private var viewWidth = 0
@@ -702,6 +720,7 @@ class VideoCutBar @JvmOverloads constructor(
     private fun applyPath(useHistoryBitmap: Boolean = false) {
         loadingListener?.onLoadingStart()
         cancelLoading()
+        var isError: Boolean = false
         doJob({
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(videoPath)
@@ -718,25 +737,35 @@ class VideoCutBar @JvmOverloads constructor(
                 var offset = 0f
                 val scaleHeight = rectImages.height()
                 for (i in 0 until numberPreviewImage) {
-                    val bitmap =
-                        retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
-                    val newBitmap = Bitmap.createScaledBitmap(
-                        bitmap,
-                        imageWidth.toInt(),
-                        scaleHeight.roundToInt(),
-                        false
-                    )
-                    canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
-                    offset += imageWidth
+                    try {
+                        val bitmap =
+                            retriever.getFrameAtTime((duration / numberPreviewImage * i.toLong() * 1000).toLong())
+                        val newBitmap = Bitmap.createScaledBitmap(
+                            bitmap,
+                            imageWidth.toInt(),
+                            scaleHeight.roundToInt(),
+                            false
+                        )
+                        canvas.drawBitmap(newBitmap, offset, 0f, paintImage)
+                        offset += imageWidth
+                    } catch (e: NullPointerException) {
+                        isError = true
+                        break
+                    }
+
                 }
             }
             retriever.release()
-            if (useHistoryBitmap) {
+            if (useHistoryBitmap && !isError) {
                 HISTORY_BITMAP = bitmapBar
                 HISTORY_PATH = videoPath
             }
         }, {
-            loadingListener?.onLoadingComplete()
+            if (isError) {
+                loadingListener?.onLoadingError()
+            } else {
+                loadingListener?.onLoadingComplete()
+            }
             invalidate()
         }, dispathcherOut = Dispatchers.Main)
 

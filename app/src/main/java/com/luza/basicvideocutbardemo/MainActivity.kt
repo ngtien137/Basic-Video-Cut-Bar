@@ -103,7 +103,11 @@ class MainActivity : AppCompatActivity(), VideoCutBar.ILoadingListener,
                             eLog("Path Video: $path")
                             if (File(path).exists()) {
                                 currentPath = path
-                                videoCutBar.setVideoPath(path, true)//videoPath = path
+                                if (VideoCutBar.checkValidVideo(path)){
+                                    videoCutBar.setVideoPath(path, true)//videoPath = path
+                                }else{
+                                    eLog("Video Error")
+                                }
                             } else
                                 Toast.makeText(
                                     this,
