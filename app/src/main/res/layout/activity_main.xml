@@ -141,6 +141,7 @@
         app:vcb_progress_thumb_width="1dp"
         app:vcb_show_thumb_cut="true"
         app:vcb_thumb_cut_min_progress="2000"
+        app:vcb_thumb_cut_min_range_mode="from_bound"
 
         app:vcb_thumb_cut_shadow_color="#f00"
         app:vcb_thumb_cut_shadow_radius="4dp"
@@ -169,10 +170,10 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:onClick="changeScreen"
         android:id="@+id/btnChangeScreen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:onClick="changeScreen"
         android:text="@string/change_screen"
         app:layout_constraintBottom_toTopOf="@+id/btnLoadVideo"
         app:layout_constraintEnd_toEndOf="parent"

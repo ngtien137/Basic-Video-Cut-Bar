@@ -144,6 +144,7 @@ class VideoCutBar @JvmOverloads constructor(
 
     //The min value between two cut thumb, unit: miliseconds
     private var minCutProgress = 0f
+    private var minRangeMode = MinRangeMode.BETWEEN
 
     var isInteract = false  //Check if user moving thumb or setting thumb progress by code
 
@@ -531,23 +532,40 @@ class VideoCutBar @JvmOverloads constructor(
         val thumbRect: Rect
         if (thumbIndex == THUMB_LEFT) {
             thumbRect = rectThumbLeft
-            val minLeft = rectView.left + barCorners
-            val maxLeft = (rectThumbRight.left - thumbWidth).toFloat() - minBetween
+            //Khoảng cách giới hạn phía bên trái của thumb left nếu minRangeMode ở chế độ FROM_BOUND
+            val extraMinLeftFromBound =
+                if (duration - maxProgress > minCutProgress) 0f else (minCutProgress - (duration - maxProgress)).toLong()
+                    .ToDimensionSize()
+            val minLeft =
+                if (minRangeMode == MinRangeMode.FROM_BOUND) rectView.left + barCorners + extraMinLeftFromBound else rectView.left + barCorners
+            val maxLeft =
+                if (minRangeMode == MinRangeMode.FROM_BOUND) (rectThumbRight.left - thumbWidth).toFloat() else (rectThumbRight.left - thumbWidth).toFloat() - minBetween
             adjustMove(thumbRect, disMove, minLeft, maxLeft)
             minProgress = thumbRect.right.toFloat().ToProgress()
 
-            if (minProgress > maxProgress - minCutProgress)
+            if (minProgress > maxProgress - minCutProgress && minRangeMode == MinRangeMode.BETWEEN)
                 minProgress = maxProgress - minCutProgress
+            else if (minProgress + (duration - maxProgress) < minCutProgress && minRangeMode == MinRangeMode.FROM_BOUND) {
+                minProgress = minCutProgress - (duration - maxProgress)
+            }
         } else if (thumbIndex == THUMB_RIGHT) {
             thumbRect = rectThumbRight
+            val extraMaxRightFromBound =
+                if (minProgress > minCutProgress) 0f else (minCutProgress - minProgress).toLong()
+                    .ToDimensionSize()
             val minLeft =
-                rectThumbLeft.right + minBetween//Bỏ đi giới hạn ở giữa
+                if (minRangeMode == MinRangeMode.FROM_BOUND) rectThumbLeft.right.toFloat() else
+                    rectThumbLeft.right + minBetween//Bỏ đi giới hạn ở giữa
             //(minCutProgress + minProgress).ToDimensionPosition()
-            val maxLeft = rectView.right - thumbWidth - barCorners
+            val maxLeft =
+                if (minRangeMode == MinRangeMode.FROM_BOUND) rectView.right - thumbWidth - barCorners - extraMaxRightFromBound
+                else rectView.right - thumbWidth - barCorners
             adjustMove(thumbRect, disMove, minLeft, maxLeft)
             maxProgress = thumbRect.left.toFloat().ToProgress()
-            if (maxProgress < minProgress + minCutProgress)
+            if (maxProgress < minProgress + minCutProgress && minRangeMode == MinRangeMode.BETWEEN)
                 maxProgress = minProgress + minCutProgress
+            else if (minProgress + (duration - maxProgress) < minCutProgress && minRangeMode == MinRangeMode.FROM_BOUND)
+                maxProgress = duration - (minCutProgress - minProgress)
         }
         if (minProgress < 0)
             minProgress = 0f
@@ -833,6 +851,10 @@ class VideoCutBar @JvmOverloads constructor(
 
     }
 
+    enum class MinRangeMode(var value: Int) {
+        FROM_BOUND(1), BETWEEN(0)
+    }
+
     enum class IndicatorPosition(var value: Int) {
         TOP(0), BOTTOM(1)
     }
@@ -881,6 +903,12 @@ class VideoCutBar @JvmOverloads constructor(
             paintThumbCut.setShadowLayer(thumbCutShadowRadius, 0f, 0f, colorShadowThumbCut)
             minCutProgress =
                 ta.getInt(R.styleable.VideoCutBar_vcb_thumb_cut_min_progress, 0).toFloat()
+            val minRangeModeValue = ta.getInt(
+                R.styleable.VideoCutBar_vcb_thumb_cut_min_range_mode,
+                MinRangeMode.BETWEEN.value
+            )
+            minRangeMode =
+                if (minRangeModeValue == MinRangeMode.FROM_BOUND.value) MinRangeMode.FROM_BOUND else MinRangeMode.BETWEEN
             thumbWidth = ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_width, 20)
             thumbHeight =
                 ta.getDimensionPixelSize(R.styleable.VideoCutBar_vcb_thumb_height, videoBarHeight)

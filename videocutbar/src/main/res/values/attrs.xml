@@ -20,6 +20,10 @@
         <attr name="vcb_thumb_cut_shadow_color" format="color" />
         <attr name="vcb_thumb_touch_extra_area" format="dimension" />
         <attr name="vcb_thumb_cut_min_progress" format="integer" />
+        <attr name="vcb_thumb_cut_min_range_mode" format="enum">
+            <enum name="between" value="0"/>
+            <enum name="from_bound" value="1"/>
+        </attr>
         <attr name="vcb_thumb_overlay_tail_color" format="color" />
         <attr name="vcb_thumb_overlay_tail_inside_color" format="color" />
 
