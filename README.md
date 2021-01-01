@@ -71,6 +71,7 @@ dependencies {
     app:vcb_progress_min="20"
     app:vcb_progress_max="40"
     app:vcb_thumb_cut_min_progress="2000"
+    app:vcb_thumb_cut_min_range_mode="from_bound"
 
     app:vcb_video_bar_background_color="#fff"
     app:vcb_video_bar_border_corners="4dp"
