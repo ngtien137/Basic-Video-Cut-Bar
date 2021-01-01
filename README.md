@@ -1,3 +1,4 @@
+[![](https://jitpack.io/v/ngtien137/Basic-Video-Cut-Bar.svg)](https://jitpack.io/#ngtien137/Basic-Video-Cut-Bar)
 # Basic Video Cut Bar
 Simple range seek bar with preview images
 ## Preview 
